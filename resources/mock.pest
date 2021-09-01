@@ -1,0 +1,5 @@
+inner = { "1" }
+not_a_token = { "0" }
+nested = { "()" | "(" ~ inner ~ ")" | "(" ~ not_a_token ~ ")" | "(" ~ nested ~ ")" }
+not_a_nested_token = { "[]" | "[" ~ not_a_token ~ "]" | "[" ~ inner ~ "]" | "[" ~ not_a_nested_token ~ "]" }
+empty = { "" }
