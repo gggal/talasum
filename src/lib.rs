@@ -10,9 +10,9 @@
 use rand::{Rng, SeedableRng};
 use rand_pcg::{Lcg64Xsh32, Pcg32};
 
-pub mod png;
 pub mod state_machine;
 pub mod tokenizer;
+pub mod randomization;
 
 extern crate pest;
 #[macro_use]

@@ -2,7 +2,6 @@
 use rand::thread_rng;
 use rand::RngCore;
 pub mod json;
-use super::png;
 
 // Transition is an operation to be performed on a value, as it's moved
 // through the automaton

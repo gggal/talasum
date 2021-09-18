@@ -1,6 +1,11 @@
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg32;
 
+// Magi Pseudo-random number generator
+
+// A class for which each object accepts
+// a number in its constructor and uses it to
+// create the internal generator object
 pub struct PRandomizer {
     generator: Pcg32,
     lower_limit: u32,
