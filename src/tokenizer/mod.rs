@@ -1,9 +1,9 @@
 pub mod json_lexer;
 
-use super::state_machine::json::boolean::BooleanAutomaton;
-use super::state_machine::json::null::NullAutomaton;
-use super::state_machine::json::number::NumberAutomaton;
-use super::state_machine::json::string::StringAutomaton;
+use super::state_machine::json::boolean::BOOL_AUTOMATON;
+use super::state_machine::json::null::NULL_AUTOMATON;
+use super::state_machine::json::number::NUMBER_AUTOMATON;
+// use super::state_machine::json::string::STRING_AUTOMATON;
 use super::state_machine::Automaton;
 
 /// This module is used for PEG-parsable (e.g. text) protocols.
@@ -14,28 +14,28 @@ use pest::{Parser, RuleType};
 /// This trait is mandatory for Rule enums from all Pest implementations
 pub trait LexerRule: RuleType {
     /// maps the underlying rule to its inner representation as Automaton
-    fn pest_to_automaton(&self) -> Option<Box<dyn Automaton<String>>>;
-    fn pest_to_automaton1(&self, content: String) -> Option<Box<dyn Automaton<String>>>;
+    fn pest_to_automaton(self) -> Option<&'static Automaton<'static, String>>;
 }
 
 /// Representation of a single token - characterized by:
 /// - its first position in the input text
 /// - its last position in the input text
 /// - its corresponing automaton
-pub struct AutomatonToken {
+pub struct AutomatonToken<'a> {
     pub from: u32,
     pub to: u32,
-    pub automaton: Box<dyn Automaton<String>>,
+    pub automaton: &'a Automaton<'a, String>,
 }
 
 /// Converts a Pest pair to its corresponding token
-fn pest_pair_to_token<T: LexerRule>(pair: &pest::iterators::Pair<T>) -> Option<AutomatonToken> {
+fn pest_pair_to_token<'a, T: 'a + LexerRule>(
+    pair: &pest::iterators::Pair<T>,
+) -> Option<AutomatonToken<'a>> {
     let rule = pair.as_rule();
-    let content = pair.as_str();
     let start = pair.as_span().start();
     let end = pair.as_span().end();
 
-    rule.pest_to_automaton1(String::from(content))
+    rule.pest_to_automaton()
         .map(|rule| AutomatonToken {
             from: start as u32,
             to: end as u32,
@@ -45,7 +45,7 @@ fn pest_pair_to_token<T: LexerRule>(pair: &pest::iterators::Pair<T>) -> Option<A
 
 /// Produces a list of (u32, u32, String) element, each representing
 /// a separate token, as defined by the state_machine module
-pub fn tokenize_input<P: Parser<R>, R: LexerRule>(
+pub fn tokenize_input<P: Parser<R>, R: 'static + LexerRule>(
     text: &str,
     parent_rule: R,
 ) -> Vec<AutomatonToken> {
@@ -57,7 +57,9 @@ pub fn tokenize_input<P: Parser<R>, R: LexerRule>(
 
 /// Iterates through all pairs in a Pest tree and generates a list of tokens
 /// in an order such that each element doesn't depend on another after it
-fn tokenize_peg_tree<T: LexerRule>(tree_root: pest::iterators::Pairs<T>) -> Vec<AutomatonToken> {
+fn tokenize_peg_tree<T: 'static + LexerRule>(
+    tree_root: pest::iterators::Pairs<T>,
+) -> Vec<AutomatonToken> {
     tree_root
         .flatten()
         .filter_map(|aut| pest_pair_to_token(&aut))
@@ -77,20 +79,10 @@ mod tests {
     use pest::Parser;
 
     impl super::LexerRule for Rule {
-        fn pest_to_automaton(&self) -> Option<Box<dyn Automaton<String>>> {
+        fn pest_to_automaton(self) -> Option<&'static Automaton<'static, String>> {
             match &self {
-                Rule::inner => Some(Box::new(super::StringAutomaton::new_from_val(
-                    String::from("from"),
-                ))),
-                Rule::nested => Some(Box::new(super::NullAutomaton::default())),
-                _ => None, // not every Pest token will have Automaton representation
-            }
-        }
-
-        fn pest_to_automaton1(&self, content: String) -> Option<Box<dyn Automaton<String>>> {
-            match &self {
-                Rule::inner => Some(Box::new(super::StringAutomaton::new_from_val(content))),
-                Rule::nested => Some(Box::new(super::NullAutomaton::new_from_val(content))),
+                Rule::inner => Some(&super::BOOL_AUTOMATON),
+                Rule::nested => Some(&super::NULL_AUTOMATON),
                 _ => None, // not every Pest token will have Automaton representation
             }
         }
@@ -104,25 +96,20 @@ mod tests {
 
     #[test]
     fn tokenize_input_successfully() {
-        let result =
-            super::tokenize_input::<MockLexer, Rule>("(((1)))", Rule::nested);
+        let result = super::tokenize_input::<MockLexer, Rule>("(((1)))", Rule::nested);
         assert_eq!(result.len(), 4);
 
         assert_eq!(result[0].from, 3);
         assert_eq!(result[0].to, 4);
-        assert_eq!(result[0].automaton.init_value(), "1");
 
         assert_eq!(result[1].from, 2);
         assert_eq!(result[1].to, 5);
-        assert_eq!(result[1].automaton.init_value(), "(1)");
 
         assert_eq!(result[2].from, 1);
         assert_eq!(result[2].to, 6);
-        assert_eq!(result[2].automaton.init_value(), "((1))");
 
         assert_eq!(result[3].from, 0);
         assert_eq!(result[3].to, 7);
-        assert_eq!(result[3].automaton.init_value(), "(((1)))");
     }
 
     fn tokenize_peg_tree_helper(rule: Rule, text: &str) -> Vec<AutomatonToken> {
@@ -144,7 +131,6 @@ mod tests {
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].from, 0);
         assert_eq!(result[0].to, 1);
-        assert_eq!(result[0].automaton.init_value(), "1");
     }
 
     #[test]
@@ -154,11 +140,9 @@ mod tests {
 
         assert_eq!(result[0].from, 1);
         assert_eq!(result[0].to, 2);
-        assert_eq!(result[0].automaton.init_value(), "1");
 
         assert_eq!(result[1].from, 0);
         assert_eq!(result[1].to, 3);
-        assert_eq!(result[1].automaton.init_value(), "(1)");
     }
 
     #[test]
@@ -174,19 +158,15 @@ mod tests {
 
         assert_eq!(result[0].from, 3);
         assert_eq!(result[0].to, 4);
-        assert_eq!(result[0].automaton.init_value(), "1");
 
         assert_eq!(result[1].from, 2);
         assert_eq!(result[1].to, 5);
-        assert_eq!(result[1].automaton.init_value(), "(1)");
 
         assert_eq!(result[2].from, 1);
         assert_eq!(result[2].to, 6);
-        assert_eq!(result[2].automaton.init_value(), "((1))");
 
         assert_eq!(result[3].from, 0);
         assert_eq!(result[3].to, 7);
-        assert_eq!(result[3].automaton.init_value(), "(((1)))");
     }
 
     #[test]
@@ -195,7 +175,6 @@ mod tests {
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].from, 1);
         assert_eq!(result[0].to, 2);
-        assert_eq!(result[0].automaton.init_value(), "1");
     }
 
     #[test]
@@ -205,6 +184,5 @@ mod tests {
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].from, 0);
         assert_eq!(result[0].to, 3);
-        assert_eq!(result[0].automaton.init_value(), "(0)");
     }
 }

@@ -1,78 +1,61 @@
-use crate::state_machine::{Automaton, AutomatonEdge, AutomatonState};
+use super::randomization::*;
+use crate::state_machine::{Automaton, AutomatonNode};
 
-#[derive(Default, Debug)]
-pub struct NullAutomaton {
-    val: String,
-}
+#[allow(dead_code)]
+static START_NULL: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |seed: u32| match seed % 100 {
+        0..=40 => Some(&VALID_NULL),
+        41..=60 => Some(&NIL_NULL),
+        61..=80 => Some(&NONE_NULL),
+        _ => Some(&ZERO_NULL),
+    },
+    transformation: super::IDENTITY,
+};
 
-impl NullAutomaton {
-    fn get_start_state() -> Box<dyn AutomatonState<String>> {
-        return Box::new(StartNull);
-    }
+static VALID_NULL: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| Some(&CASED_NULL),
+    transformation: |_, _| String::from("null"),
+};
 
-    pub fn new_from_val(val: String) -> Self {
-        Self { val: val }
-    }
+static NIL_NULL: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| Some(&CASED_NULL),
+    transformation: |_, _| String::from("nil"),
+};
 
-    pub fn new() -> Self {
-        Self {
-            val: String::from(""),
-        }
-    }
-}
+static NONE_NULL: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| Some(&CASED_NULL),
+    transformation: |_, _| String::from("none"),
+};
 
-impl Automaton<String> for NullAutomaton {
-    fn init_value(&self) -> String {
-        self.val.clone()
-    }
+static ZERO_NULL: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| None,
+    transformation: |_, _| String::from("0"),
+};
 
-    fn init_state(&self) -> Box<dyn AutomatonState<String>> {
-        Self::get_start_state()
-    }
-}
+static CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| None,
+    transformation: |seed, text| match seed % 100 {
+        0..=10 => to_upper_case(seed, text),
+        11..=20 => to_capitalized(seed, text),
+        21..=30 => to_random_case(seed, text),
+        _ => text,
+    },
+};
 
-// TODO add NaN value
-pub struct StartNull;
-impl AutomatonState<String> for StartNull {
-    fn decide_next(&self, seed: u32) -> Option<AutomatonEdge<String>> {
-        match seed % 100 {
-            0..=40 => Some((Box::new(LiteralNull), |_, _| String::from("null"))),
-            41..=50 => Some((Box::new(LiteralNull), |_, _| String::from("Null"))),
-            51..=60 => Some((Box::new(LiteralNull), |_, _| String::from("nil"))),
-            61..=70 => Some((Box::new(LiteralNull), |_, _| String::from("Nil"))),
-            71..=80 => Some((Box::new(LiteralNull), |_, _| String::from("none"))),
-            81..=90 => Some((Box::new(LiteralNull), |_, _| String::from("None"))),
-            91..=100 => Some((Box::new(LiteralNull), |_, _| String::from("0"))),
-            _ => panic!("Invalid seed"),
-        }
-    }
-}
-
-struct LiteralNull;
-impl AutomatonState<String> for LiteralNull {
-    fn decide_next(&self, _seed: u32) -> Option<AutomatonEdge<String>> {
-        None
-    }
-}
+#[allow(dead_code)]
+pub static NULL_AUTOMATON: Automaton<String> = Automaton::<String> {
+    initial_node: &START_NULL,
+};
 
 #[cfg(test)]
 mod tests {
-    use crate::state_machine::Automaton;
-    use crate::state_machine::AutomatonState;
-
-    // #[test]
-    // #[should_panic(expected = "Invalid seed")]
-    // fn panic_when_seed_is_invalid() {
-    //     super::StartNull.decide_next(123);
-    // }
+    use super::NULL_AUTOMATON;
 
     #[test]
     fn try_null() {
-        let mut my_machine: super::NullAutomaton = super::NullAutomaton::default();
         for _i in 1..20 {
-            let res = my_machine.traverse();
+            let res: String = NULL_AUTOMATON.traverse(String::from("asd"));
             println!("Res is: {}", res);
         }
-        super::StartNull.decide_next(123);
     }
 }

@@ -38,15 +38,6 @@ struct IdentParser;
 //     Ok(())
 // }
 
-fn mute_not_used_warnings() {
-    let res = tokenizer::tokenize_input::<
-        tokenizer::json_lexer::JsonLexer,
-        tokenizer::json_lexer::Rule,
-    >(&String::from("1"), tokenizer::json_lexer::Rule::value);
-    for el in res {
-        println!("from {} ", el.from);
-    }
-}
 
 #[cfg(test)]
 mod tests {

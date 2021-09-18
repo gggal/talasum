@@ -4,29 +4,17 @@ use super::LexerRule;
 #[derive(Parser)]
 //#[derive(Tokenizer)] // add a macro function that generates an alias function for parse
 #[grammar = "../resources/json.pest"]
-pub struct JsonLexer; 
+pub struct JsonLexer;
 
 impl LexerRule for Rule {
-    fn pest_to_automaton(&self) -> Option<Box<dyn Automaton<String>>> {
+    fn pest_to_automaton(self) -> Option<&'static Automaton<'static, String>> {
         match &self {
-            Rule::string => Some(Box::new(super::StringAutomaton::default())),
-            Rule::number => Some(Box::new(super::NumberAutomaton::default())),
-            Rule::boolean => Some(Box::new(super::BooleanAutomaton::default())),
-            Rule::object => Some(Box::new(super::StringAutomaton::default())),
-            Rule::array => Some(Box::new(super::StringAutomaton::default())),
-            Rule::null => Some(Box::new(super::NullAutomaton::default())),
-            _ => None,
-        }
-    }
-
-    fn pest_to_automaton1(&self, content: String) -> Option<Box<dyn Automaton<String>>> {
-        match &self {
-            Rule::string => Some(Box::new(super::StringAutomaton::new_from_val(content))),
-            Rule::number => Some(Box::new(super::StringAutomaton::new_from_val(String::from("number")))),
-            Rule::boolean => Some(Box::new(super::StringAutomaton::new_from_val(String::from("bool")))),
-            Rule::object => Some(Box::new(super::StringAutomaton::new_from_val(String::from("object")))),
-            Rule::array => Some(Box::new(super::StringAutomaton::new_from_val(String::from("array")))),
-            Rule::null => Some(Box::new(super::NullAutomaton::new_from_val(content))),
+            Rule::string => Some(&super::NULL_AUTOMATON),
+            Rule::number => Some(&super::NUMBER_AUTOMATON),
+            Rule::boolean => Some(&super::BOOL_AUTOMATON),
+            Rule::object => Some(&super::BOOL_AUTOMATON),
+            Rule::array => Some(&super::BOOL_AUTOMATON),
+            Rule::null => Some(&super::NULL_AUTOMATON),
             _ => None,
         }
     }
@@ -37,10 +25,8 @@ mod tests {
     use crate::tokenizer::AutomatonToken;
 
     use super::{JsonLexer, Rule};
-    // use super::*;
-    // use pest::Parser;
 
-    fn tokenize_json_input_helper(input: &str) -> Vec<AutomatonToken>{
+    fn tokenize_json_input_helper(input: &str) -> Vec<AutomatonToken> {
         super::super::tokenize_input::<JsonLexer, Rule>(input, Rule::value)
     }
     #[test]
@@ -50,7 +36,6 @@ mod tests {
 
         assert_eq!(result[0].from, 0);
         assert_eq!(result[0].to, 4);
-        assert_eq!(result[0].automaton.init_value(), "null");
     }
 
     #[test]
@@ -60,7 +45,6 @@ mod tests {
 
         assert_eq!(result[0].from, 0);
         assert_eq!(result[0].to, 4);
-        assert_eq!(result[0].automaton.init_value(), "bool");
     }
 
     #[test]
@@ -70,7 +54,6 @@ mod tests {
 
         assert_eq!(result[0].from, 0);
         assert_eq!(result[0].to, 5);
-        assert_eq!(result[0].automaton.init_value(), "bool");
     }
 
     #[test]
@@ -80,7 +63,6 @@ mod tests {
 
         assert_eq!(result[0].from, 0);
         assert_eq!(result[0].to, 5);
-        assert_eq!(result[0].automaton.init_value(), "\"asd\"");
     }
 
     #[test]
@@ -90,13 +72,10 @@ mod tests {
 
         assert_eq!(result[1].from, 1);
         assert_eq!(result[1].to, 4);
-        assert_eq!(result[1].automaton.init_value(), "\"a\"");
         assert_eq!(result[0].from, 5);
         assert_eq!(result[0].to, 6);
-        assert_eq!(result[0].automaton.init_value(), "number");
         assert_eq!(result[2].from, 0);
         assert_eq!(result[2].to, 7);
-        assert_eq!(result[2].automaton.init_value(), "object");
     }
 
     #[test]
@@ -106,16 +85,12 @@ mod tests {
 
         assert_eq!(result[2].from, 1);
         assert_eq!(result[2].to, 2);
-        assert_eq!(result[2].automaton.init_value(), "number");
         assert_eq!(result[1].from, 3);
         assert_eq!(result[1].to, 4);
-        assert_eq!(result[1].automaton.init_value(), "number");
         assert_eq!(result[0].from, 5);
         assert_eq!(result[0].to, 6);
-        assert_eq!(result[0].automaton.init_value(), "number");
         assert_eq!(result[3].from, 0);
         assert_eq!(result[3].to, 7);
-        assert_eq!(result[3].automaton.init_value(), "array");
     }
 
     #[test]

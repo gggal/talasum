@@ -8,112 +8,7 @@
 use std::u64;
 
 use super::randomization::*;
-use crate::state_machine::{Automaton, AutomatonEdge, AutomatonState};
-
-#[derive(Default, Debug)]
-pub struct NumberAutomaton {
-    val: String,
-}
-
-impl NumberAutomaton {
-    fn get_start_state() -> Box<dyn AutomatonState<String>> {
-        return Box::new(StartNumber);
-    }
-}
-
-impl Automaton<String> for NumberAutomaton {
-    fn init_value(&self) -> String {
-        self.val.clone()
-    }
-
-    fn init_state(&self) -> Box<dyn AutomatonState<String>> {
-        Self::get_start_state()
-    }
-}
-
-struct StartNumber;
-impl AutomatonState<String> for StartNumber {
-    fn decide_next(&self, seed: u32) -> Option<AutomatonEdge<String>> {
-        match seed % 100 {
-            0..=40 => Some((Box::new(RealNumber), |seed, _| random_digit_string(seed))),
-            41..=80 => Some((Box::new(NaturalNumber), |seed, _| random_digit_string(seed))),
-            81..=90 => Some((Box::new(super::null::StartNull), super::IDENTITY)),
-            91..=95 => Some((Box::new(Final), |seed, _| {
-                format!("0x{}", random_digit_string(seed))
-            })),
-            96..=100 => Some((Box::new(Final), |seed, _| {
-                format!("0{}", random_digit_string(seed))
-            })),
-            _ => panic!("Invalid seed"),
-        }
-    }
-}
-
-struct Final;
-impl AutomatonState<String> for Final {
-    fn decide_next(&self, _seed: u32) -> Option<AutomatonEdge<String>> {
-        None
-    }
-}
-
-struct RealNumber;
-impl AutomatonState<String> for RealNumber {
-    fn decide_next(&self, seed: u32) -> Option<AutomatonEdge<String>> {
-        match seed % 100 {
-            0..=90 => Some((Box::new(ScientificNotationRealNumber), |seed, num| {
-                let mut to_return = String::from(num);
-                insert_char(&mut to_return, '.', seed as u64);
-                to_return
-            })),
-            91..=100 => Some((Box::new(ScientificNotationRealNumber), |seed, num| {
-                let mut to_return = String::from(num);
-                insert_char(&mut to_return, ',', seed as u64);
-                to_return
-            })),
-            _ => panic!("Invalid seed"),
-        }
-    }
-}
-
-struct NaturalNumber;
-impl AutomatonState<String> for NaturalNumber {
-    fn decide_next(&self, seed: u32) -> Option<AutomatonEdge<String>> {
-        match seed % 100 {
-            0..=90 => Some((Box::new(SignedInt), super::IDENTITY)),
-            91..=100 => Some((Box::new(SignedInt), |seed, _| {
-                random_digit_string_long(seed)
-            })),
-            _ => panic!("Invalid seed"),
-        }
-    }
-}
-
-struct ScientificNotationRealNumber;
-impl AutomatonState<String> for ScientificNotationRealNumber {
-    fn decide_next(&self, seed: u32) -> Option<AutomatonEdge<String>> {
-        match seed % 100 {
-            0..=95 => Some((Box::new(SignedInt), super::IDENTITY)),
-            96..=100 => Some((Box::new(SignedInt), |seed, num| {
-                let e = if random_bool(seed) { 'E' } else { 'e' };
-                let sign = if random_bool(seed) { '+' } else { '-' };
-                let exponent = random_digit_string(seed);
-                format!("{}{}{}{}", num, e, sign, exponent)
-            })),
-            _ => panic!("Invalid seed"),
-        }
-    }
-}
-
-struct SignedInt;
-impl AutomatonState<String> for SignedInt {
-    fn decide_next(&self, seed: u32) -> Option<AutomatonEdge<String>> {
-        match seed % 100 {
-            0..=50 => Some((Box::new(Final), super::IDENTITY)),
-            51..=100 => Some((Box::new(Final), |_, num| format!("-{}", num))),
-            _ => panic!("Invalid seed"),
-        }
-    }
-}
+use crate::state_machine::{Automaton, AutomatonNode};
 
 fn insert_char(seq: &mut String, to_insert: char, seed: u64) -> bool {
     match random_position(seq, seed as u32) {
@@ -125,10 +20,80 @@ fn insert_char(seq: &mut String, to_insert: char, seed: u64) -> bool {
     }
 }
 
+#[allow(dead_code)]
+static START_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |seed: u32| match seed % 100 {
+        0..=40 => Some(&REAL_NUMBER),
+        41..=80 => Some(&NATURAL_NUMBER),
+        // 81..=90 => Some(&super::null::START_NULL),
+        91..=95 => Some(&HEX_NUMBER),
+        _ => Some(&OCTAL_NUMBER),
+    },
+    transformation: |seed, _| random_digit_string(seed),
+};
+
+static REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |seed: u32| match seed % 100 {
+        0..=10 => Some(&SCI_NOTATION_REAL_NUMBER),
+        _ => Some(&SIGNED_NUMBER),
+    },
+    transformation: |seed, num| match seed % 100 {
+        0..=90 => {
+            let mut to_return = String::from(num);
+            insert_char(&mut to_return, '.', seed as u64);
+            to_return
+        }
+        91..=100 => {
+            let mut to_return = String::from(num);
+            insert_char(&mut to_return, ',', seed as u64);
+            to_return
+        }
+        _ => panic!("Invalid seed"),
+    },
+};
+
+static NATURAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| Some(&SIGNED_NUMBER),
+    transformation: super::IDENTITY,
+};
+
+static HEX_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| None,
+    transformation: |seed, _| format!("0x{}", random_digit_string(seed)),
+};
+
+static OCTAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| None,
+    transformation: |seed, _| format!("0{}", random_digit_string(seed)),
+};
+
+static SCI_NOTATION_REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| Some(&SIGNED_NUMBER),
+    transformation: |seed, num| {
+        let e = if random_bool(seed) { 'E' } else { 'e' };
+        let sign = if random_bool(seed) { '+' } else { '-' };
+        let exponent = random_digit_string(seed);
+        format!("{}{}{}{}", num, e, sign, exponent)
+    },
+};
+
+static SIGNED_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| None,
+    transformation: |seed, num| {
+        if seed % 2 == 0 {
+            format!("-{}", num)
+        } else {
+            num
+        }
+    },
+};
+
+#[allow(dead_code)]
+pub static NUMBER_AUTOMATON: Automaton<String> = Automaton::<String> {
+    initial_node: &START_NUMBER,
+};
 #[cfg(test)]
 mod tests {
-    use crate::state_machine::Automaton;
-    use crate::state_machine::AutomatonState;
 
     // there's a shellcode injection case
     // there's int overflow case, etc.
@@ -140,12 +105,10 @@ mod tests {
 
     #[test]
     fn try_number() {
-        let mut my_machine: super::NumberAutomaton = super::NumberAutomaton::default();
         for _i in 1..20 {
-            let res = my_machine.traverse();
+            let res: String = super::NUMBER_AUTOMATON.traverse(String::from("asd"));
             println!("Res is: {}", res);
         }
-        super::StartNumber.decide_next(123);
     }
 
     #[test]
