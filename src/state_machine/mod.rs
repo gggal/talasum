@@ -1,7 +1,6 @@
 // use crate::state_machine::Basic;
 use rand::thread_rng;
 use rand::RngCore;
-pub mod basic;
 pub mod json;
 use super::png;
 
