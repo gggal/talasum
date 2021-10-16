@@ -4,19 +4,22 @@ use crate::state_machine::{Automaton, AutomatonNode};
 #[allow(dead_code)]
 static START_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |seed: u32| match seed % 100 {
-        0..=80 => Some(&VALID_BOOLEAN),
-        _ => Some(&NUMERICAL_BOOLEAN),
+        0..=80 => None,
+        _ => Some(&REVERSE_BOOLEAN),
     },
     transformation: super::IDENTITY,
 };
 
-static VALID_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-    transition: |_| Some(&QUOTED_BOOLEAN),
-    transformation: |seed, _| {
-        if seed % 2 == 0 {
-            String::from("true")
-        } else {
+static REVERSE_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |seed| match seed % 100 {
+        0..=50 => Some(&NUMERICAL_BOOLEAN),
+        _ => Some(&CASED_BOOLEAN),
+    },
+    transformation: |_, input| {
+        if input == "true" {
             String::from("false")
+        } else {
+            String::from("true")
         }
     },
 };
@@ -47,6 +50,13 @@ static CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
 #[allow(dead_code)]
 pub static BOOL_AUTOMATON: Automaton<String> = Automaton::<String> {
     initial_node: &START_BOOLEAN,
+    generator: |seed| {
+        if seed % 2 == 0 {
+            String::from("true")
+        } else {
+            String::from("false")
+        }
+    },
 };
 
 #[cfg(test)]
@@ -56,7 +66,15 @@ mod tests {
     #[test]
     fn try_bool() {
         for _i in 1..20 {
-            let res: String = BOOL_AUTOMATON.traverse(String::from("asd"));
+            let res: String = BOOL_AUTOMATON.traverse(String::from("false"));
+            println!("Res is: {}", res);
+        }
+    }
+
+    #[test]
+    fn try_bool1() {
+        for _i in 1..20 {
+            let res: String = BOOL_AUTOMATON.generate();
             println!("Res is: {}", res);
         }
     }

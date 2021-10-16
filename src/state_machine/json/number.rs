@@ -7,7 +7,7 @@
 
 use std::u64;
 
-use super::randomization::*;
+use super::{randomization::*, IDENTITY};
 use crate::state_machine::{Automaton, AutomatonNode};
 
 fn insert_char(seq: &mut String, to_insert: char, seed: u64) -> bool {
@@ -29,7 +29,7 @@ static START_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
         91..=95 => Some(&HEX_NUMBER),
         _ => Some(&OCTAL_NUMBER),
     },
-    transformation: |seed, _| random_digit_string(seed),
+    transformation: IDENTITY,
 };
 
 static REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
@@ -91,6 +91,7 @@ static SIGNED_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
 #[allow(dead_code)]
 pub static NUMBER_AUTOMATON: Automaton<String> = Automaton::<String> {
     initial_node: &START_NUMBER,
+    generator: |seed| random_digit_string(seed),
 };
 #[cfg(test)]
 mod tests {
@@ -106,7 +107,15 @@ mod tests {
     #[test]
     fn try_number() {
         for _i in 1..20 {
-            let res: String = super::NUMBER_AUTOMATON.traverse(String::from("asd"));
+            let res: String = super::NUMBER_AUTOMATON.traverse(String::from("1"));
+            println!("Res is: {}", res);
+        }
+    }
+
+    #[test]
+    fn try_number1() {
+        for _i in 1..20 {
+            let res: String = super::NUMBER_AUTOMATON.generate();
             println!("Res is: {}", res);
         }
     }

@@ -5,9 +5,11 @@ pub mod json;
 
 // Transition is an operation to be performed on a value, as it's moved
 // through the automaton
-type Transformation<T> = fn(u32, T) -> T;
+type Transformation<T> = fn(u32, T) -> T; // TODO maybe rename to mutate
 
 type Transition<'a, T> = fn(u32) -> Option<&'a AutomatonNode<'a, T>>;
+
+type Generate<T> = fn(u32) -> T;
 
 #[allow(dead_code)]
 
@@ -23,6 +25,7 @@ struct AutomatonNode<'a, T: 'static> {
 #[allow(dead_code)]
 pub struct Automaton<'a, T: 'static + Eq> {
     initial_node: &'a AutomatonNode<'a, T>,
+    generator: Generate<T>,
 }
 
 /// Magi automatons are finite state machines with a predefined set of states and edges.
@@ -32,17 +35,30 @@ pub struct Automaton<'a, T: 'static + Eq> {
 /// a pseudo-random number - quota. The quota falls into one category out of multiple pre-defined
 /// ones, each associated with an edge candidate.  
 impl<'a, T: Eq> Automaton<'a, T> {
+    // TODO might rename to FuzzEngine/FuzzAutomaton
     // Returns the initial state for the automaton
     fn init_state(&self) -> &'a AutomatonNode<'a, T> {
         self.initial_node
     }
 
+    fn init_value(&self, seed: u32) -> T {
+        (self.generator)(seed)
+    }
+
+    // TODO delete this method
     fn seed(&self) -> Box<dyn RngCore> {
         Box::new(thread_rng())
     }
 
+    fn generate(&self) -> T {
+        let mut seed: Box<dyn RngCore> = self.seed();
+
+        self.traverse(self.init_value(seed.as_mut().next_u32()))
+    }
+
     // Traverses the graph and computes the end value
     fn traverse(&self, input: T) -> T {
+        // !TODO rename to mutate ?
         let mut seed: Box<dyn RngCore> = self.seed();
 
         let mut value: T = input;
