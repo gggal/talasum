@@ -5,7 +5,7 @@ pub mod json;
 
 // Transition is an operation to be performed on a value, as it's moved
 // through the automaton
-type Transformation<T> = fn(u32, T) -> T; // TODO maybe rename to mutate
+type Transformation<T> = fn(T) -> T; // TODO maybe rename to mutate
 
 type Transition<'a, T> = fn(u32) -> Option<&'a AutomatonNode<'a, T>>;
 
@@ -70,7 +70,7 @@ impl<'a, T: Eq> Automaton<'a, T> {
             transformation,
         }) = state
         {
-            value = transformation(rand, value);
+            value = transformation(value);
             state = transition(rand);
             rand = seed.as_mut().next_u32();
         }

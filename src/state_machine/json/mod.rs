@@ -7,4 +7,4 @@ pub mod number;
 pub mod string;
 use crate::randomization;
 
-pub const IDENTITY: fn(u32, String) -> String = |_, input| input;
+pub const IDENTITY: fn(String) -> String = |input| input;

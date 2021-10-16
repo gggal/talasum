@@ -15,7 +15,7 @@ static REVERSE_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
         0..=50 => Some(&NUMERICAL_BOOLEAN),
         _ => Some(&CASED_BOOLEAN),
     },
-    transformation: |_, input| {
+    transformation: |input| {
         if input == "true" {
             String::from("false")
         } else {
@@ -25,26 +25,47 @@ static REVERSE_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
 };
 
 static NUMERICAL_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-    transition: |_| Some(&QUOTED_BOOLEAN),
-    transformation: |seed, _| (seed % 2).to_string(),
+    transition: |seed| match seed % 100 {
+        0..=20 => Some(&QUOTED_BOOLEAN),
+        _ => Some(&CASED_BOOLEAN),
+    },
+    transformation: |input| {
+        if input == "true" {
+            String::from("1")
+        } else {
+            String::from("0")
+        }
+    },
 };
 
 static QUOTED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| Some(&CASED_BOOLEAN),
-    transformation: |seed, text| match seed % 100 {
-        0..=20 => format!("\"{}\"", text),
-        _ => text,
-    },
+    transformation: |text| format!("\"{}\"", text)
 };
 
 static CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-    transition: |_| None,
-    transformation: |seed, text| match seed % 100 {
-        0..=10 => to_upper_case(seed, text),
-        11..=20 => to_capitalized(seed, text),
-        21..=30 => to_random_case(seed, text),
-        _ => text,
+    transition: |seed| match seed % 100 {
+        0..=10 => Some(&UPPER_CASED_BOOLEAN),
+        11..=20 => Some(&RANDOM_CASED_BOOLEAN),
+        21..=30 => Some(&CAPITALIZED_BOOLEAN),
+        _ => None,
     },
+    transformation: super::IDENTITY,
+};
+
+static UPPER_CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| None,
+    transformation: |text| to_upper_case(text)
+};
+
+static RANDOM_CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| None,
+    transformation: |text| to_random_case(text)
+};
+
+static CAPITALIZED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| None,
+    transformation: |text| to_capitalized(text)
 };
 
 #[allow(dead_code)]
@@ -82,7 +103,7 @@ mod tests {
     #[test]
     fn capitalized_works() {
         assert_eq!(
-            super::to_capitalized(123, String::from("word")),
+            super::to_capitalized(String::from("word")),
             String::from("Word")
         );
     }

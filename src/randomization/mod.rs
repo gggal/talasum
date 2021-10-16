@@ -51,19 +51,19 @@ pub fn random_bool(seed: u32) -> bool {
     randomizer.get() % 2 == 0
 }
 
-pub fn to_upper_case(_seed: u32, s: String) -> String {
+pub fn to_upper_case(s: String) -> String {
     s.to_ascii_uppercase()
 }
 
-pub fn to_capitalized(_seed: u32, s: String) -> String {
+pub fn to_capitalized(s: String) -> String {
     let mut to_return = s.clone();
     to_return[0..1].make_ascii_uppercase();
     // print!("Debug {}", to_return);
     to_return
 }
 
-pub fn to_random_case(seed: u32, s: String) -> String {
-    super::randomization::random_capitalization(seed, s)
+pub fn to_random_case(s: String) -> String {
+    super::randomization::random_capitalization(123, s)
 }
 
 

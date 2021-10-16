@@ -1,24 +1,5 @@
-// will it start with a 0
-// will it be a negative or positive
-// fraction with a comma
-// is integer or a irrational
-// is non-decimal (octal, hex)
-// is too large
-
-use std::u64;
-
 use super::{randomization::*, IDENTITY};
 use crate::state_machine::{Automaton, AutomatonNode};
-
-fn insert_char(seq: &mut String, to_insert: char, seed: u64) -> bool {
-    match random_position(seq, seed as u32) {
-        None => false,
-        Some(insert_pos) => {
-            seq.insert(insert_pos as usize, to_insert);
-            true
-        }
-    }
-}
 
 #[allow(dead_code)]
 static START_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
@@ -35,57 +16,56 @@ static START_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
 static REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |seed: u32| match seed % 100 {
         0..=10 => Some(&SCI_NOTATION_REAL_NUMBER),
-        _ => Some(&SIGNED_NUMBER),
+        11..=45 => Some(&SIGNED_NUMBER),
+        46..=60 => Some(&DECIMAL_COMMA_REAL_NUMBER),
+        _ => None,
     },
-    transformation: |seed, num| match seed % 100 {
-        0..=90 => {
-            let mut to_return = String::from(num);
-            insert_char(&mut to_return, '.', seed as u64);
-            to_return
-        }
-        91..=100 => {
-            let mut to_return = String::from(num);
-            insert_char(&mut to_return, ',', seed as u64);
-            to_return
-        }
-        _ => panic!("Invalid seed"),
+    transformation: |num| {
+        let num1 = num.parse::<u32>().unwrap();
+        let delim = num1 % 10 + 1;
+        (num1 / (100 * delim)).to_string()
     },
 };
 
+static DECIMAL_COMMA_REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |seed: u32| match seed % 100 {
+        0..=50 => Some(&SIGNED_NUMBER),
+        _ => None,
+    },
+    transformation: |num| str::replace(&num, ".", ","),
+};
+
 static NATURAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
-    transition: |_| Some(&SIGNED_NUMBER),
+    transition: |seed: u32| match seed % 100 {
+        0..=50 => Some(&SIGNED_NUMBER),
+        _ => None,
+    },
     transformation: super::IDENTITY,
 };
 
 static HEX_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| None,
-    transformation: |seed, _| format!("0x{}", random_digit_string(seed)),
+    // transformation: |seed, _| format!("0x{}", random_digit_string(seed)),
+    transformation: |input| format!("{:#01x}", input.parse::<u32>().unwrap()),
 };
 
 static OCTAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| None,
-    transformation: |seed, _| format!("0{}", random_digit_string(seed)),
+    transformation: |input| format!("0{:o}", input.parse::<u32>().unwrap()),
 };
 
 static SCI_NOTATION_REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
-    transition: |_| Some(&SIGNED_NUMBER),
-    transformation: |seed, num| {
-        let e = if random_bool(seed) { 'E' } else { 'e' };
-        let sign = if random_bool(seed) { '+' } else { '-' };
-        let exponent = random_digit_string(seed);
-        format!("{}{}{}{}", num, e, sign, exponent)
+    transition: |seed: u32| match seed % 100 {
+        0..=50 => Some(&SIGNED_NUMBER),
+        _ => None,
+    },transformation: |num| {
+        format!("{:+e}", num.parse::<u32>().unwrap())
     },
 };
 
 static SIGNED_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| None,
-    transformation: |seed, num| {
-        if seed % 2 == 0 {
-            format!("-{}", num)
-        } else {
-            num
-        }
-    },
+    transformation: |num| format!("-{}", num),
 };
 
 #[allow(dead_code)]
@@ -118,19 +98,5 @@ mod tests {
             let res: String = super::NUMBER_AUTOMATON.generate();
             println!("Res is: {}", res);
         }
-    }
-
-    #[test]
-    fn char_insertions_inserts() {
-        let mut res_str = String::from("a");
-        super::insert_char(&mut res_str, 'b', 1234);
-        assert!(res_str == String::from("ba") || res_str == String::from("ab"));
-    }
-
-    #[test]
-    fn char_insertions_inserts_at_the_right_place() {
-        let mut res_str = String::from("helo");
-        super::insert_char(&mut res_str, 'l', 1234);
-        assert_eq!(res_str, String::from("hello"));
     }
 }

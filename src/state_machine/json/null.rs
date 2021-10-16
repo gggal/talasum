@@ -1,5 +1,5 @@
 use super::randomization::*;
-use crate::state_machine::{Automaton, AutomatonNode, Transformation};
+use crate::state_machine::{Automaton, AutomatonNode};
 
 #[allow(dead_code)]
 static START_NULL: AutomatonNode<String> = AutomatonNode::<String> {
@@ -14,27 +14,42 @@ static START_NULL: AutomatonNode<String> = AutomatonNode::<String> {
 
 static NIL_NULL: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| Some(&CASED_NULL),
-    transformation: |_, _| String::from("nil"),
+    transformation: |_| String::from("nil"),
 };
 
 static NONE_NULL: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| Some(&CASED_NULL),
-    transformation: |_, _| String::from("none"),
+    transformation: |_| String::from("none"),
 };
 
 static ZERO_NULL: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| None,
-    transformation: |_, _| String::from("0"),
+    transformation: |_| String::from("0"),
 };
 
 static CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-    transition: |_| None,
-    transformation: |seed, text| match seed % 100 {
-        0..=10 => to_upper_case(seed, text),
-        11..=20 => to_capitalized(seed, text),
-        21..=30 => to_random_case(seed, text),
-        _ => text,
+    transition: |seed| match seed % 100 {
+        0..=10 => Some(&UPPER_CASED_NULL),
+        11..=20 => Some(&RANDOM_CASED_NULL),
+        21..=30 => Some(&CAPITALIZED_NULL),
+        _ => None,
     },
+    transformation: super::IDENTITY,
+};
+
+static UPPER_CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| None,
+    transformation: |text| to_upper_case(text)
+};
+
+static RANDOM_CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| None,
+    transformation: |text| to_random_case(text)
+};
+
+static CAPITALIZED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
+    transition: |_| None,
+    transformation: |text| to_capitalized(text)
 };
 
 #[allow(dead_code)]
