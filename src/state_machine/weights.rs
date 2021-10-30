@@ -1,4 +1,4 @@
-use super::{AutomatonNode1, Transition1};
+use super::{AutomatonNode, Transition};
 use itertools::Itertools;
 
 macro_rules! choose {
@@ -15,22 +15,22 @@ macro_rules! choose {
 pub(crate) use choose;
 
 pub struct TransitionChoice<T: 'static + Clone + Sync> {
-    weights: Vec<WeightedTransition1<T>>,
+    weights: Vec<WeightedTransition<T>>,
 }
 
 // move this into the impl when stable: https://github.com/rust-lang/rust/issues/8995
-type WeightedTransition1<T> = (u32, Option<&'static AutomatonNode1<T>>);
+type WeightedTransition<T> = (u32, Option<&'static AutomatonNode<T>>);
 
 impl<T: 'static + Clone + Sync> TransitionChoice<T> {
     // const MAGIC_COEF: u32 = 100; // from 0 to 100
 
     // Magic == 0 is invalid and will break tests!!!
-    pub fn new(mut weights: Vec<WeightedTransition1<T>>, magic: u32) -> Self {
+    pub fn new(mut weights: Vec<WeightedTransition<T>>, magic: u32) -> Self {
         // sort the weights in ascending order, group into same numbers, multiply with 10*x, loop over and recalc
         weights.sort_by(|(w1, _), (w2, _)| w1.partial_cmp(&w2).unwrap());
 
         let mut prev_weight = 0;
-        let mut recalculated = Vec::<WeightedTransition1<T>>::new();
+        let mut recalculated = Vec::<WeightedTransition<T>>::new();
         let mut top_limit = 0;
 
         for (weight, mut group) in &weights.into_iter().group_by(|(w, _)| *w) {
@@ -47,7 +47,7 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
         }
     }
 
-    fn choice_func(&self, seed: u32) -> Option<&'static AutomatonNode1<T>> {
+    fn choice_func(&self, seed: u32) -> Option<&'static AutomatonNode<T>> {
         if let Some(last) = self.weights.last() {
             let (last_weight, last_val) = last;
             let mut choice = *last_val;
@@ -63,7 +63,7 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
         }
     }
 
-    pub fn choose(self) -> Transition1<T> {
+    pub fn choose(self) -> Transition<T> {
         Box::new(move |seed: u32| self.choice_func(seed))
     }
 }
@@ -82,18 +82,18 @@ mod tests {
             .collect()
     }
 
-    fn choose_helper(input: Vec<WeightedTransition1<String>>, seed: u32) -> Transformation<String> {
+    fn choose_helper(input: Vec<WeightedTransition<String>>, seed: u32) -> Transformation<String> {
         TransitionChoice::<String>::new(input, 100).choose()(seed)
             .unwrap()
             .transformation
     }
 
     lazy_static! {
-        static ref TEST_NODE1: AutomatonNode1<String> = AutomatonNode1::<String> {
+        static ref TEST_NODE1: AutomatonNode<String> = AutomatonNode::<String> {
             transition: Box::new(|_| None),
             transformation: |_| String::from("Test1"),
         };
-        static ref TEST_NODE2: AutomatonNode1<String> = AutomatonNode1::<String> {
+        static ref TEST_NODE2: AutomatonNode<String> = AutomatonNode::<String> {
             transition: Box::new(|_| None),
             transformation: |_| String::from("Test2"),
         };
@@ -195,12 +195,12 @@ mod tests {
             85,
         );
         assert_eq!(
-            recalculated.weights[0].1.unwrap() as *const AutomatonNode1<String>,
-            recalculated.weights[2].1.unwrap() as *const AutomatonNode1<String>
+            recalculated.weights[0].1.unwrap() as *const AutomatonNode<String>,
+            recalculated.weights[2].1.unwrap() as *const AutomatonNode<String>
         );
         assert_eq!(
-            recalculated.weights[1].1.unwrap() as *const AutomatonNode1<String>,
-            recalculated.weights[3].1.unwrap() as *const AutomatonNode1<String>
+            recalculated.weights[1].1.unwrap() as *const AutomatonNode<String>,
+            recalculated.weights[3].1.unwrap() as *const AutomatonNode<String>
         );
     }
 

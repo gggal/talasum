@@ -8,9 +8,7 @@ pub mod weights;
 // through the automaton
 type Transformation<T> = fn(T) -> T; // TODO maybe rename to mutate
 
-type Transition<'a, T> = fn(u32) -> Option<&'a AutomatonNode<'a, T>>;
-
-type Transition1<T> = Box<dyn Fn(u32) -> Option<&'static AutomatonNode1<T>> + std::marker::Sync>;
+type Transition<T> = Box<dyn Fn(u32) -> Option<&'static AutomatonNode<T>> + std::marker::Sync>;
 
 type Generate<T> = fn(u32) -> T;
 
@@ -19,26 +17,14 @@ type Generate<T> = fn(u32) -> T;
 /// Magi Automaton states represent automaton states (graph nodes). Each is qualified
 /// by a set of edges. Which edge is chosen depends on the seed's next value,
 /// meaning decisions are retraceble (since they are based on pseudo-randomness).
-struct AutomatonNode<'a, T: 'static> {
-    transition: Transition<'a, T>,
+pub struct AutomatonNode<T: 'static> {
+    transition: Transition<T>,
     transformation: Transformation<T>,
 }
 
-pub struct AutomatonNode1<T: 'static> {
-    transition: Transition1<T>,
-    transformation: Transformation<T>,
-}
-
-/////
 #[allow(dead_code)]
-pub struct Automaton<'a, T: 'static + Eq> {
-    initial_node: &'a AutomatonNode<'a, T>,
-    generator: Generate<T>,
-}
-
-#[allow(dead_code)]
-pub struct Automaton1<T: 'static + Eq> {
-    initial_node: &'static AutomatonNode1<T>,
+pub struct Automaton<T: 'static + Eq> {
+    initial_node: &'static AutomatonNode<T>,
     generator: Generate<T>,
 }
 
@@ -48,10 +34,10 @@ pub struct Automaton1<T: 'static + Eq> {
 /// the state decision function that takes a seed (int sequence) and based on it, it generates
 /// a pseudo-random number - quota. The quota falls into one category out of multiple pre-defined
 /// ones, each associated with an edge candidate.  
-impl<'a, T: Eq> Automaton<'a, T> {
+impl<T: Eq + core::fmt::Debug> Automaton<T> {
     // TODO might rename to FuzzEngine/FuzzAutomaton
     // Returns the initial state for the automaton
-    fn init_state(&self) -> &'a AutomatonNode<'a, T> {
+    fn init_state(&self) -> &AutomatonNode<T> {
         self.initial_node
     }
 
@@ -74,55 +60,10 @@ impl<'a, T: Eq> Automaton<'a, T> {
     fn traverse(&self, input: T) -> T {
         // !TODO rename to mutate ?
         let mut seed: Box<dyn RngCore> = self.seed();
-
         let mut value: T = input;
-        let mut state: Option<&'a AutomatonNode<'a, T>> = Some(self.init_state());
+        let mut state: Option<&AutomatonNode<T>> = Some(self.init_state());
         let mut rand = seed.as_mut().next_u32();
-
         while let Some(AutomatonNode {
-            transition,
-            transformation,
-        }) = state
-        {
-            value = transformation(value);
-            state = transition(rand);
-            rand = seed.as_mut().next_u32();
-        }
-
-        value
-    }
-}
-
-impl<T: Eq + core::fmt::Debug> Automaton1<T> {
-    // TODO might rename to FuzzEngine/FuzzAutomaton
-    // Returns the initial state for the automaton
-    fn init_state(&self) -> &AutomatonNode1<T> {
-        self.initial_node
-    }
-
-    fn init_value(&self, seed: u32) -> T {
-        (self.generator)(seed)
-    }
-
-    // TODO delete this method
-    fn seed(&self) -> Box<dyn RngCore> {
-        Box::new(thread_rng())
-    }
-
-    fn generate(&self) -> T {
-        let mut seed: Box<dyn RngCore> = self.seed();
-
-        self.traverse(self.init_value(seed.as_mut().next_u32()))
-    }
-
-    // Traverses the graph and computes the end value
-    fn traverse(&self, input: T) -> T {
-        // !TODO rename to mutate ?
-        let mut seed: Box<dyn RngCore> = self.seed();
-        let mut value: T = input;
-        let mut state: Option<&AutomatonNode1<T>> = Some(self.init_state());
-        let mut rand = seed.as_mut().next_u32();
-        while let Some(AutomatonNode1 {
             transition,
             transformation,
         }) = state
