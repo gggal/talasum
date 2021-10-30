@@ -53,43 +53,24 @@ static CAPITALIZED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
     transformation: |text| to_capitalized(text),
 };
 
-// CAN WE MERGE TRANSITIONS AND TRANSFORMATIONS
-// Transformation may be a |string| -> string function
-// Transition may be a function, created by the extremize_and_choose
-// which would return a func rather than result; the constructor
-// will be executed once, thus the func generation will be executed once
-
-// #[allow(dead_code)]
 lazy_static! {
     static ref CASED_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
-        transition: TransitionChoice::new(vec![
+        transition: choose![
             (1, Some(&UPPER_CASED_NULL1)),
             (1, Some(&RANDOM_CASED_NULL1)),
-            (1, Some(&CAPITALIZED_NULL1)),
-            // WeightedTransition{weight: 7.0, value: None},
-        ], 100).choose(),
+            (1, Some(&CAPITALIZED_NULL1))
+        ],
         transformation: super::IDENTITY,
     };
 
 
     static ref START_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
-        transition: TransitionChoice::new(vec![
+        transition: choose![
             (4, Some(&CASED_NULL1)),
             (2, Some(&NIL_NULL1)),
             (2, Some(&NONE_NULL1)),
-            (2, Some(&ZERO_NULL1)),
-        ], 100).choose(),
-        transformation: super::IDENTITY,
-    };
-
-
-    static ref START_NULL2: AutomatonNode1<String> = AutomatonNode1::<String> {
-        transition: TransitionChoice::new(vec![
-            (4, Some(&CASED_NULL1)),
-            (2, Some(&NIL_NULL1)),
-            (2, Some(&NONE_NULL1)),
-            (2, Some(&ZERO_NULL1)),
-        ], 50).choose(),
+            (2, Some(&ZERO_NULL1))
+        ],
         transformation: super::IDENTITY,
     };
 

@@ -1,11 +1,18 @@
 use super::{AutomatonNode1, Transition1};
 use itertools::Itertools;
 
-#[derive(Copy, Clone)]
-pub struct WeightedValue<T: Copy> {
-    pub weight: f32,
-    pub value: T,
+macro_rules! choose {
+    ( $( ($w:expr, $x:expr) ),* ) => {
+        {
+            TransitionChoice::new(vec![
+                $(
+                    ($w, $x),
+                )*
+            ], 100).choose()
+        }
+    };
 }
+pub(crate) use choose;
 
 pub struct TransitionChoice<T: 'static + Clone + Sync> {
     weights: Vec<WeightedTransition1<T>>,
@@ -30,12 +37,9 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
             let new_val = weight * magic + prev_weight * (100 - magic);
             prev_weight = weight;
 
-            while let Some(( _, tr)) = group.next() {
+            while let Some((_, tr)) = group.next() {
                 top_limit += new_val;
-                recalculated.push((
-                    top_limit,
-                    tr,
-                ));
+                recalculated.push((top_limit, tr));
             }
         }
         Self {
@@ -71,17 +75,11 @@ mod tests {
     use super::*;
 
     fn recalculate_helper(weights: Vec<u32>, magic: u32) -> Vec<u32> {
-        TransitionChoice::<String>::new(
-            weights
-                .iter()
-                .map(|w| (*w, None))
-                .collect_vec(),
-            magic,
-        )
-        .weights
-        .iter()
-        .map(|(w, _)| *w)
-        .collect()
+        TransitionChoice::<String>::new(weights.iter().map(|w| (*w, None)).collect_vec(), magic)
+            .weights
+            .iter()
+            .map(|(w, _)| *w)
+            .collect()
     }
 
     fn choose_helper(input: Vec<WeightedTransition1<String>>, seed: u32) -> Transformation<String> {
@@ -218,12 +216,10 @@ mod tests {
     #[test]
     fn choose_with_0_seed() {
         for quota in [1, 50, 80, 100] {
-            assert!(TransitionChoice::<String>::new(
-                vec![(1, Some(&TEST_NODE1))],
-                quota
-            )
-            .choose()(0)
-            .is_some());
+            assert!(
+                TransitionChoice::<String>::new(vec![(1, Some(&TEST_NODE1))], quota).choose()(0)
+                    .is_some()
+            );
         }
     }
 
@@ -233,10 +229,7 @@ mod tests {
         // be chosen regardless the seed
         for seed in [0, 100, 2000] {
             assert_eq!(
-                choose_helper(
-                    vec![(1, Some(&TEST_NODE1))],
-                    seed
-                )(String::new()),
+                choose_helper(vec![(1, Some(&TEST_NODE1))], seed)(String::new()),
                 "Test1"
             );
         }
@@ -246,24 +239,30 @@ mod tests {
     fn choose_correctly_from_multiple_choices_based_on_seed() {
         for seed in [0, 1, 99, 100, 301] {
             assert_eq!(
-                choose_helper(
-                    vec![(1, Some(&TEST_NODE1)),
-                        (2, Some(&TEST_NODE2))],
-                    seed
-                )(String::new()),
+                choose_helper(vec![(1, Some(&TEST_NODE1)), (2, Some(&TEST_NODE2))], seed)(
+                    String::new()
+                ),
                 "Test1"
             );
         }
 
         for seed in [101, 299, 401, 599] {
             assert_eq!(
-                choose_helper(
-                    vec![(1, Some(&TEST_NODE1)),
-                         (2, Some(&TEST_NODE2))],
-                    seed
-                )(String::new()),
+                choose_helper(vec![(1, Some(&TEST_NODE1)), (2, Some(&TEST_NODE2))], seed)(
+                    String::new()
+                ),
                 "Test2"
             );
         }
+    }
+
+    #[test]
+    fn choose_macro_expands_correctly() {
+        assert_eq!(
+            (choose![(1, Some(&TEST_NODE1))](1234)
+                .unwrap()
+                .transformation)(String::new()),
+            "Test1"
+        );
     }
 }
