@@ -63,9 +63,9 @@ static CAPITALIZED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
 lazy_static! {
     static ref CASED_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
         transition: TransitionChoice::new(vec![
-            WeightedTransition1{weight: 1, value: Some(&UPPER_CASED_NULL1)},
-            WeightedTransition1{weight: 1, value: Some(&RANDOM_CASED_NULL1)},
-            WeightedTransition1{weight: 1, value: Some(&CAPITALIZED_NULL1)},
+            (1, Some(&UPPER_CASED_NULL1)),
+            (1, Some(&RANDOM_CASED_NULL1)),
+            (1, Some(&CAPITALIZED_NULL1)),
             // WeightedTransition{weight: 7.0, value: None},
         ], 100).choose(),
         transformation: super::IDENTITY,
@@ -74,10 +74,10 @@ lazy_static! {
 
     static ref START_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
         transition: TransitionChoice::new(vec![
-            WeightedTransition1{weight: 4, value: Some(&CASED_NULL1)},
-            WeightedTransition1{weight: 2, value: Some(&NIL_NULL1)},
-            WeightedTransition1{weight: 2, value: Some(&NONE_NULL1)},
-            WeightedTransition1{weight: 2, value: Some(&ZERO_NULL1)},
+            (4, Some(&CASED_NULL1)),
+            (2, Some(&NIL_NULL1)),
+            (2, Some(&NONE_NULL1)),
+            (2, Some(&ZERO_NULL1)),
         ], 100).choose(),
         transformation: super::IDENTITY,
     };
@@ -85,10 +85,10 @@ lazy_static! {
 
     static ref START_NULL2: AutomatonNode1<String> = AutomatonNode1::<String> {
         transition: TransitionChoice::new(vec![
-            WeightedTransition1{weight: 4, value: Some(&CASED_NULL1)},
-            WeightedTransition1{weight: 2, value: Some(&NIL_NULL1)},
-            WeightedTransition1{weight: 2, value: Some(&NONE_NULL1)},
-            WeightedTransition1{weight: 2, value: Some(&ZERO_NULL1)},
+            (4, Some(&CASED_NULL1)),
+            (2, Some(&NIL_NULL1)),
+            (2, Some(&NONE_NULL1)),
+            (2, Some(&ZERO_NULL1)),
         ], 50).choose(),
         transformation: super::IDENTITY,
     };

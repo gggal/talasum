@@ -7,16 +7,12 @@ pub struct WeightedValue<T: Copy> {
     pub value: T,
 }
 
-#[derive(Copy, Clone)]
-pub struct WeightedTransition1<T: 'static> {
-    pub weight: u32,
-    pub value: Option<&'static AutomatonNode1<T>>,
-}
-
 pub struct TransitionChoice<T: 'static + Clone + Sync> {
     weights: Vec<WeightedTransition1<T>>,
 }
 
+// move this into the impl when stable: https://github.com/rust-lang/rust/issues/8995
+type WeightedTransition1<T> = (u32, Option<&'static AutomatonNode1<T>>);
 
 impl<T: 'static + Clone + Sync> TransitionChoice<T> {
     // const MAGIC_COEF: u32 = 100; // from 0 to 100
@@ -24,26 +20,22 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
     // Magic == 0 is invalid and will break tests!!!
     pub fn new(mut weights: Vec<WeightedTransition1<T>>, magic: u32) -> Self {
         // sort the weights in ascending order, group into same numbers, multiply with 10*x, loop over and recalc
-        weights.sort_by(|val1, val2| val1.weight.partial_cmp(&val2.weight).unwrap());
+        weights.sort_by(|(w1, _), (w2, _)| w1.partial_cmp(&w2).unwrap());
 
         let mut prev_weight = 0;
         let mut recalculated = Vec::<WeightedTransition1<T>>::new();
         let mut top_limit = 0;
 
-        for (weight, mut group) in &weights.into_iter().group_by(|val| val.weight) {
+        for (weight, mut group) in &weights.into_iter().group_by(|(w, _)| *w) {
             let new_val = weight * magic + prev_weight * (100 - magic);
             prev_weight = weight;
 
-            while let Some(WeightedTransition1::<T> {
-                weight: _,
-                value: tr,
-            }) = group.next()
-            {
+            while let Some(( _, tr)) = group.next() {
                 top_limit += new_val;
-                recalculated.push(WeightedTransition1::<T> {
-                    weight: top_limit,
-                    value: tr,
-                });
+                recalculated.push((
+                    top_limit,
+                    tr,
+                ));
             }
         }
         Self {
@@ -53,14 +45,11 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
 
     fn choice_func(&self, seed: u32) -> Option<&'static AutomatonNode1<T>> {
         if let Some(last) = self.weights.last() {
-            let WeightedTransition1 {
-                weight: last_weight,
-                value: last_val,
-            } = last;
+            let (last_weight, last_val) = last;
             let mut choice = *last_val;
-            for el in &self.weights {
-                if el.weight >= seed % last_weight {
-                    choice = el.value;
+            for (weight, value) in &self.weights {
+                if *weight >= seed % last_weight {
+                    choice = *value;
                     break;
                 }
             }
@@ -85,16 +74,13 @@ mod tests {
         TransitionChoice::<String>::new(
             weights
                 .iter()
-                .map(|w| WeightedTransition1 {
-                    weight: *w,
-                    value: None,
-                })
+                .map(|w| (*w, None))
                 .collect_vec(),
             magic,
         )
         .weights
         .iter()
-        .map(|tr| tr.weight)
+        .map(|(w, _)| *w)
         .collect()
     }
 
@@ -203,32 +189,20 @@ mod tests {
     fn proper_values_after_recalculation() {
         let recalculated = TransitionChoice::<String>::new(
             vec![
-                WeightedTransition1 {
-                    weight: 1,
-                    value: Some(&TEST_NODE1),
-                },
-                WeightedTransition1 {
-                    weight: 2,
-                    value: Some(&TEST_NODE2),
-                },
-                WeightedTransition1 {
-                    weight: 3,
-                    value: Some(&TEST_NODE1),
-                },
-                WeightedTransition1 {
-                    weight: 4,
-                    value: Some(&TEST_NODE2),
-                },
+                (1, Some(&TEST_NODE1)),
+                (2, Some(&TEST_NODE2)),
+                (3, Some(&TEST_NODE1)),
+                (4, Some(&TEST_NODE2)),
             ],
             85,
         );
         assert_eq!(
-            recalculated.weights[0].value.unwrap() as *const AutomatonNode1<String>,
-            recalculated.weights[2].value.unwrap() as *const AutomatonNode1<String>
+            recalculated.weights[0].1.unwrap() as *const AutomatonNode1<String>,
+            recalculated.weights[2].1.unwrap() as *const AutomatonNode1<String>
         );
         assert_eq!(
-            recalculated.weights[1].value.unwrap() as *const AutomatonNode1<String>,
-            recalculated.weights[3].value.unwrap() as *const AutomatonNode1<String>
+            recalculated.weights[1].1.unwrap() as *const AutomatonNode1<String>,
+            recalculated.weights[3].1.unwrap() as *const AutomatonNode1<String>
         );
     }
 
@@ -245,10 +219,7 @@ mod tests {
     fn choose_with_0_seed() {
         for quota in [1, 50, 80, 100] {
             assert!(TransitionChoice::<String>::new(
-                vec![WeightedTransition1 {
-                    weight: 1,
-                    value: Some(&TEST_NODE1),
-                },],
+                vec![(1, Some(&TEST_NODE1))],
                 quota
             )
             .choose()(0)
@@ -263,10 +234,7 @@ mod tests {
         for seed in [0, 100, 2000] {
             assert_eq!(
                 choose_helper(
-                    vec![WeightedTransition1 {
-                        weight: 1,
-                        value: Some(&TEST_NODE1),
-                    }],
+                    vec![(1, Some(&TEST_NODE1))],
                     seed
                 )(String::new()),
                 "Test1"
@@ -279,16 +247,8 @@ mod tests {
         for seed in [0, 1, 99, 100, 301] {
             assert_eq!(
                 choose_helper(
-                    vec![
-                        WeightedTransition1 {
-                            weight: 1,
-                            value: Some(&TEST_NODE1),
-                        },
-                        WeightedTransition1 {
-                            weight: 2,
-                            value: Some(&TEST_NODE2),
-                        }
-                    ],
+                    vec![(1, Some(&TEST_NODE1)),
+                        (2, Some(&TEST_NODE2))],
                     seed
                 )(String::new()),
                 "Test1"
@@ -298,16 +258,8 @@ mod tests {
         for seed in [101, 299, 401, 599] {
             assert_eq!(
                 choose_helper(
-                    vec![
-                        WeightedTransition1 {
-                            weight: 1,
-                            value: Some(&TEST_NODE1),
-                        },
-                        WeightedTransition1 {
-                            weight: 2,
-                            value: Some(&TEST_NODE2),
-                        }
-                    ],
+                    vec![(1, Some(&TEST_NODE1)),
+                         (2, Some(&TEST_NODE2))],
                     seed
                 )(String::new()),
                 "Test2"
