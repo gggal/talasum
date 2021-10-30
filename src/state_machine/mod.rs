@@ -2,12 +2,13 @@
 use rand::thread_rng;
 use rand::RngCore;
 pub mod json;
+pub mod weights;
 
 // Transition is an operation to be performed on a value, as it's moved
 // through the automaton
 type Transformation<T> = fn(T) -> T; // TODO maybe rename to mutate
 
-type Transition<'a, T> = fn(u32) -> Option<&'a AutomatonNode<'a, T>>;
+type Transition<T> = Box<dyn Fn(u32) -> Option<&'static AutomatonNode<T>> + std::marker::Sync>;
 
 type Generate<T> = fn(u32) -> T;
 
@@ -16,15 +17,14 @@ type Generate<T> = fn(u32) -> T;
 /// Magi Automaton states represent automaton states (graph nodes). Each is qualified
 /// by a set of edges. Which edge is chosen depends on the seed's next value,
 /// meaning decisions are retraceble (since they are based on pseudo-randomness).
-struct AutomatonNode<'a, T: 'static> {
-    transition: Transition<'a, T>,
+pub struct AutomatonNode<T: 'static> {
+    transition: Transition<T>,
     transformation: Transformation<T>,
 }
 
-/////
 #[allow(dead_code)]
-pub struct Automaton<'a, T: 'static + Eq> {
-    initial_node: &'a AutomatonNode<'a, T>,
+pub struct Automaton<T: 'static + Eq> {
+    initial_node: &'static AutomatonNode<T>,
     generator: Generate<T>,
 }
 
@@ -34,10 +34,10 @@ pub struct Automaton<'a, T: 'static + Eq> {
 /// the state decision function that takes a seed (int sequence) and based on it, it generates
 /// a pseudo-random number - quota. The quota falls into one category out of multiple pre-defined
 /// ones, each associated with an edge candidate.  
-impl<'a, T: Eq> Automaton<'a, T> {
+impl<T: Eq + core::fmt::Debug> Automaton<T> {
     // TODO might rename to FuzzEngine/FuzzAutomaton
     // Returns the initial state for the automaton
-    fn init_state(&self) -> &'a AutomatonNode<'a, T> {
+    fn init_state(&self) -> &AutomatonNode<T> {
         self.initial_node
     }
 
@@ -60,11 +60,9 @@ impl<'a, T: Eq> Automaton<'a, T> {
     fn traverse(&self, input: T) -> T {
         // !TODO rename to mutate ?
         let mut seed: Box<dyn RngCore> = self.seed();
-
         let mut value: T = input;
-        let mut state: Option<&'a AutomatonNode<'a, T>> = Some(self.init_state());
+        let mut state: Option<&AutomatonNode<T>> = Some(self.init_state());
         let mut rand = seed.as_mut().next_u32();
-
         while let Some(AutomatonNode {
             transition,
             transformation,

@@ -7,7 +7,7 @@ use super::LexerRule;
 pub struct JsonLexer;
 
 impl LexerRule for Rule {
-    fn pest_to_automaton(self) -> Option<&'static Automaton<'static, String>> {
+    fn pest_to_automaton(self) -> Option<&'static Automaton<String>> {
         match &self {
             Rule::string => Some(&super::NULL_AUTOMATON),
             Rule::number => Some(&super::NUMBER_AUTOMATON),

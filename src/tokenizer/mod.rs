@@ -14,7 +14,7 @@ use pest::{Parser, RuleType};
 /// This trait is mandatory for Rule enums from all Pest implementations
 pub trait LexerRule: RuleType {
     /// maps the underlying rule to its inner representation as Automaton
-    fn pest_to_automaton(self) -> Option<&'static Automaton<'static, String>>;
+    fn pest_to_automaton(self) -> Option<&'static Automaton<String>>;
 }
 
 /// Representation of a single token - characterized by:
@@ -24,7 +24,7 @@ pub trait LexerRule: RuleType {
 pub struct AutomatonToken<'a> {
     pub from: u32,
     pub to: u32,
-    pub automaton: &'a Automaton<'a, String>,
+    pub automaton: &'a Automaton<String>,
 }
 
 /// Converts a Pest pair to its corresponding token
@@ -35,12 +35,11 @@ fn pest_pair_to_token<'a, T: 'a + LexerRule>(
     let start = pair.as_span().start();
     let end = pair.as_span().end();
 
-    rule.pest_to_automaton()
-        .map(|rule| AutomatonToken {
-            from: start as u32,
-            to: end as u32,
-            automaton: rule,
-        })
+    rule.pest_to_automaton().map(|rule| AutomatonToken {
+        from: start as u32,
+        to: end as u32,
+        automaton: rule,
+    })
 }
 
 /// Produces a list of (u32, u32, String) element, each representing
@@ -79,7 +78,7 @@ mod tests {
     use pest::Parser;
 
     impl super::LexerRule for Rule {
-        fn pest_to_automaton(self) -> Option<&'static Automaton<'static, String>> {
+        fn pest_to_automaton(self) -> Option<&'static Automaton<String>> {
             match &self {
                 Rule::inner => Some(&super::BOOL_AUTOMATON),
                 Rule::nested => Some(&super::NULL_AUTOMATON),
