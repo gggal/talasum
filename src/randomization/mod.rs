@@ -28,8 +28,7 @@ pub fn random_capitalization(seed: u32, to_transform: String) -> String {
 
 // less > 2^32
 pub fn random_digit_string(seed: u32) -> String {
-    let mut randomizer =
-        SkewedPRandomizer::new_limited(seed as u64, 0, 1_u32 << 20, vec![1, 1000]);
+    let mut randomizer = SkewedPRandomizer::new_limited(seed as u64, 0, 1_u32 << 20, vec![1, 1000]);
     randomizer.get().to_string()
 }
 
@@ -65,7 +64,6 @@ pub fn to_capitalized(s: String) -> String {
 pub fn to_random_case(s: String) -> String {
     super::randomization::random_capitalization(123, s)
 }
-
 
 #[cfg(test)]
 mod common_json_tests {

@@ -35,12 +35,11 @@ fn pest_pair_to_token<'a, T: 'a + LexerRule>(
     let start = pair.as_span().start();
     let end = pair.as_span().end();
 
-    rule.pest_to_automaton()
-        .map(|rule| AutomatonToken {
-            from: start as u32,
-            to: end as u32,
-            automaton: rule,
-        })
+    rule.pest_to_automaton().map(|rule| AutomatonToken {
+        from: start as u32,
+        to: end as u32,
+        automaton: rule,
+    })
 }
 
 /// Produces a list of (u32, u32, String) element, each representing

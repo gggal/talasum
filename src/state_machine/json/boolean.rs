@@ -40,7 +40,7 @@ static NUMERICAL_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
 
 static QUOTED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| Some(&CASED_BOOLEAN),
-    transformation: |text| format!("\"{}\"", text)
+    transformation: |text| format!("\"{}\"", text),
 };
 
 static CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
@@ -55,17 +55,17 @@ static CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
 
 static UPPER_CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| None,
-    transformation: |text| to_upper_case(text)
+    transformation: |text| to_upper_case(text),
 };
 
 static RANDOM_CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| None,
-    transformation: |text| to_random_case(text)
+    transformation: |text| to_random_case(text),
 };
 
 static CAPITALIZED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| None,
-    transformation: |text| to_capitalized(text)
+    transformation: |text| to_capitalized(text),
 };
 
 #[allow(dead_code)]

@@ -58,9 +58,8 @@ static SCI_NOTATION_REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String>
     transition: |seed: u32| match seed % 100 {
         0..=50 => Some(&SIGNED_NUMBER),
         _ => None,
-    },transformation: |num| {
-        format!("{:+e}", num.parse::<u32>().unwrap())
     },
+    transformation: |num| format!("{:+e}", num.parse::<u32>().unwrap()),
 };
 
 static SIGNED_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
