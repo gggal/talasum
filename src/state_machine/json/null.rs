@@ -1,5 +1,6 @@
+use super::super::weights::*;
 use super::randomization::*;
-use crate::state_machine::{Automaton, AutomatonNode};
+use crate::state_machine::{Automaton, Automaton1, AutomatonNode, AutomatonNode1};
 
 #[allow(dead_code)]
 static START_NULL: AutomatonNode<String> = AutomatonNode::<String> {
@@ -39,18 +40,96 @@ static CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
 
 static UPPER_CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| None,
-    transformation: |text| to_upper_case(text)
+    transformation: |text| to_upper_case(text),
 };
 
 static RANDOM_CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| None,
-    transformation: |text| to_random_case(text)
+    transformation: |text| to_random_case(text),
 };
 
 static CAPITALIZED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
     transition: |_| None,
-    transformation: |text| to_capitalized(text)
+    transformation: |text| to_capitalized(text),
 };
+
+// CAN WE MERGE TRANSITIONS AND TRANSFORMATIONS
+// Transformation may be a |string| -> string function
+// Transition may be a function, created by the extremize_and_choose
+// which would return a func rather than result; the constructor
+// will be executed once, thus the func generation will be executed once
+
+// #[allow(dead_code)]
+lazy_static! {
+    static ref CASED_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
+        transition: TransitionChoice::new(vec![
+            WeightedTransition1{weight: 1, value: Some(&UPPER_CASED_NULL1)},
+            WeightedTransition1{weight: 1, value: Some(&RANDOM_CASED_NULL1)},
+            WeightedTransition1{weight: 1, value: Some(&CAPITALIZED_NULL1)},
+            // WeightedTransition{weight: 7.0, value: None},
+        ], 100).choose(),
+        transformation: super::IDENTITY,
+    };
+
+
+    static ref START_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
+        transition: TransitionChoice::new(vec![
+            WeightedTransition1{weight: 4, value: Some(&CASED_NULL1)},
+            WeightedTransition1{weight: 2, value: Some(&NIL_NULL1)},
+            WeightedTransition1{weight: 2, value: Some(&NONE_NULL1)},
+            WeightedTransition1{weight: 2, value: Some(&ZERO_NULL1)},
+        ], 100).choose(),
+        transformation: super::IDENTITY,
+    };
+
+
+    static ref START_NULL2: AutomatonNode1<String> = AutomatonNode1::<String> {
+        transition: TransitionChoice::new(vec![
+            WeightedTransition1{weight: 4, value: Some(&CASED_NULL1)},
+            WeightedTransition1{weight: 2, value: Some(&NIL_NULL1)},
+            WeightedTransition1{weight: 2, value: Some(&NONE_NULL1)},
+            WeightedTransition1{weight: 2, value: Some(&ZERO_NULL1)},
+        ], 50).choose(),
+        transformation: super::IDENTITY,
+    };
+
+    static ref NIL_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
+        transition: Box::new(|_| Some(&CASED_NULL1)),
+        transformation: |_| String::from("nil"),
+    };
+
+    static ref NONE_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
+        transition: Box::new(|_| Some(&CASED_NULL1)),
+        transformation: |_| String::from("none"),
+    };
+
+    static ref ZERO_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
+        transition: Box::new(|_| None),
+        transformation: |_| String::from("0"),
+    };
+
+    static ref UPPER_CASED_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
+        transition: Box::new(|_| None),
+        transformation: |text| to_upper_case(text)
+    };
+
+    static ref RANDOM_CASED_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
+        transition: Box::new(|_| None),
+        transformation: |text| to_random_case(text)
+    };
+
+    static ref CAPITALIZED_NULL1: AutomatonNode1<String> = AutomatonNode1::<String> {
+        transition: Box::new(|_| None),
+        transformation: |text| to_capitalized(text)
+    };
+
+    #[allow(dead_code)]
+    pub static ref NULL_AUTOMATON1: Automaton1<String> = Automaton1::<String> {
+        initial_node: &START_NULL1,
+        generator: |_| String::from("null"),
+    };
+
+}
 
 #[allow(dead_code)]
 pub static NULL_AUTOMATON: Automaton<String> = Automaton::<String> {
@@ -74,6 +153,14 @@ mod tests {
     fn try_null1() {
         for _i in 1..20 {
             let res: String = NULL_AUTOMATON.generate();
+            println!("Res is: {}", res);
+        }
+    }
+
+    #[test]
+    fn try_null2() {
+        for _i in 1..20 {
+            let res: String = super::NULL_AUTOMATON1.generate();
             println!("Res is: {}", res);
         }
     }
