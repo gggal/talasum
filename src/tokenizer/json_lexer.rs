@@ -27,7 +27,7 @@ mod tests {
     use super::{JsonLexer, Rule};
 
     fn tokenize_json_input_helper(input: &str) -> Vec<AutomatonToken> {
-        super::super::tokenize_input::<JsonLexer, Rule>(input, Rule::value)
+        super::super::tokenize_input::<JsonLexer, Rule>(input, Rule::value).unwrap()
     }
     #[test]
     fn tokenize_null() {
@@ -94,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Can't parse pest tree")]
+    #[should_panic]
     fn fail_to_tokenize_invalid_json() {
         let result = tokenize_json_input_helper("asd");
     }

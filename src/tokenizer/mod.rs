@@ -47,10 +47,14 @@ fn pest_pair_to_token<'a, T: 'a + LexerRule>(
 pub fn tokenize_input<P: Parser<R>, R: 'static + LexerRule>(
     text: &str,
     parent_rule: R,
-) -> Vec<AutomatonToken> {
-    match P::parse(parent_rule, text) {
-        Ok(pairs) => tokenize_peg_tree::<R>(pairs),
-        Err(_) => panic!("Can't parse pest tree"),
+) -> Option<Vec<AutomatonToken>> {
+    if text.len() == 0 {
+        Some(vec![])
+    } else {
+        match P::parse(parent_rule, text) {
+            Ok(pairs) => Some(tokenize_peg_tree::<R>(pairs)),
+            Err(_) => None,
+        }
     }
 }
 
@@ -88,14 +92,15 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Can't parse pest tree")]
     fn try_tokenizing_text_with_wrong_parent_rule() {
-        super::tokenize_input::<MockLexer, Rule>("(1)", Rule::not_a_nested_token);
+        assert!(
+            super::tokenize_input::<MockLexer, Rule>("(1)", Rule::not_a_nested_token).is_none()
+        );
     }
 
     #[test]
     fn tokenize_input_successfully() {
-        let result = super::tokenize_input::<MockLexer, Rule>("(((1)))", Rule::nested);
+        let result = super::tokenize_input::<MockLexer, Rule>("(((1)))", Rule::nested).unwrap();
         assert_eq!(result.len(), 4);
 
         assert_eq!(result[0].from, 3);

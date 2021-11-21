@@ -4,11 +4,13 @@
 //! It provides support for generic types and structures, as well as the following protocols/DSL:
 //! http, json, more
 
-// use syn::{Result};
-// use syn::Expr;
-// use syn::TypePtr;
-use rand::{Rng, SeedableRng};
-use rand_pcg::{Lcg64Xsh32, Pcg32};
+use crate::tokenizer::tokenize_input;
+use randomization::prandomizer::PRandomizer;
+use state_machine::json::number::NUMBER_AUTOMATON;
+use state_machine::Automaton;
+use std::collections::{BTreeMap, HashSet};
+use tokenizer::json_lexer::{JsonLexer, Rule};
+use tokenizer::AutomatonToken;
 
 pub mod randomization;
 pub mod state_machine;
@@ -21,95 +23,256 @@ extern crate pest_derive;
 #[macro_use]
 extern crate lazy_static;
 
-struct IdentParser;
-// use crate::state_machine;
+struct Generator<T: 'static + Eq> {
+    automaton: &'static Automaton<T>,
+    seeder: PRandomizer,
+}
 
-// pub fn a() -> Result<()>{
-//     let t: TypePtr = syn::parse_str("std::collections::HashMap<String, Value>")?;
-
-//     // println!("{:?}", t );
-//     Ok(())
-// }
-
-// fn run() -> Result<()> {
-//     let code = "assert_eq!(u8::max_value(), 255)";
-//     let expr = syn::parse_str("assert_eq!(u8::max_value(), 255)")?;
-//     println!("{:#?}", expr);
-//     Ok(())
-// }
-
-#[cfg(test)]
-mod tests {
-    use rand::{Rng, SeedableRng};
-    use rand_pcg::Pcg32;
-    use syn::TypePtr;
-    use syn::{Result, Type};
-
-    pub fn a() -> Result<()> {
-        let t: TypePtr = syn::parse_str("std::collections::HashMap<String, Value>")?;
-        let asd = t.elem;
-        // println!("{:?}", t );
-        Ok(())
-    }
-
-    fn print_type_of<T>(_: &T) -> String {
-        println!("{}", std::any::type_name::<T>());
-        format!("{}", std::any::type_name::<T>())
-    }
-
-    // #[test]
-    // fn it_works() {
-    //     assert_eq!(2 + 2, 4);
-    // }
-
-    // fn enum_to_txt(ty: &syn::Type) -> String {
-    //     match &ty {
-    //         syn::Type::Array(_) => "array".to_owned(),
-    //         syn::Type::Slice(_) => "slice".to_owned(),
-    //         syn::Type::Ptr(_) => "ptr".to_owned(),
-    //         syn::Type::Reference(_) => "Reference".to_owned(),
-    //         syn::Type::BareFn(_) => "BareFn".to_owned(),
-    //         syn::Type::Never(_) => "Never".to_owned(),
-    //         syn::Type::Tuple(_) => "Tuple".to_owned(),
-    //         syn::Type::Path(_) => "Path".to_owned(),
-    //         syn::Type::TraitObject(_) => "TraitObject".to_owned(),
-    //         syn::Type::ImplTrait(_) => "ImplTrait".to_owned(),
-    //         syn::Type::Paren(_) => "Paren".to_owned(),
-    //         syn::Type::Group(_) => "Group".to_owned(),
-    //         syn::Type::Infer(_) => "Infer".to_owned(),
-    //         syn::Type::Macro(_) => "Macro".to_owned(),
-    //         syn::Type::Verbatim(_) => "Verbatim".to_owned(),
-    //         _ => "other..".to_owned()
-    //     }
-    // }
-
-    // #[test]
-    // fn syn_test() {
-    //     let a = 23;
-    //     //std::collections::HashMap<String, String>
-    //     match syn::parse_str::<syn::Type>("fn(asd) -> asd") {
-    //         Err(t) =>  {
-    //             assert_eq!(print_type_of(&t), "")
-    //         }
-    //         Ok(t) => {
-    //             assert_eq!(print_type_of(&t), "syn::ty::Type");
-    //             assert_eq!(enum_to_txt(&t), "left is the type")
-    //         }
-    //     }
-    // }
-
-    #[test]
-    pub fn main() {
-        use rand_core::SeedableRng;
-        use rand_pcg::Pcg32;
-        let mut rng = Pcg32::seed_from_u64(42);
-        for idx in 0..10 {
-            let x: u32 = rng.gen();
-            println!("Num {}: {}", idx, x);
+impl<T: Eq> Generator<T> {
+    fn new(automaton: &'static Automaton<T>, seed: u32) -> Self {
+        Self {
+            automaton: automaton,
+            seeder: PRandomizer::new(seed as u64),
         }
     }
 }
 
-pub fn rand_num(seed: u64) -> Pcg32 {
-    Pcg32::seed_from_u64(seed)
+impl<T: Eq + core::fmt::Debug> Iterator for Generator<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.automaton.generate(self.seeder.get()))
+    }
+}
+
+struct Mutator {
+    seeder: PRandomizer,
+    tokens: Vec<tokenizer::AutomatonToken<'static>>,
+    input: &'static str,
+}
+
+impl Mutator {
+    fn new(seed: u32, input: &'static str) -> Option<Self> {
+        match tokenize_input::<JsonLexer, Rule>(input, Rule::value) {
+            Some(tokens) => Some(Self {
+                seeder: PRandomizer::new(seed as u64),
+                tokens: tokens,
+                input: input,
+            }),
+            None => None,
+        }
+    }
+
+    // calculated the new position of that element based on previous moves
+    // indices in the offset table are not inclusive,
+    fn get_moved_position(offset_table: &BTreeMap<u32, i32>, original: u32) -> i32 {
+        original as i32
+            + offset_table
+                .range(0..original)
+                .fold(0, |acc, (_, offset)| acc as i32 + offset)
+    }
+
+    fn move_position(offset_table: &mut BTreeMap<u32, i32>, original: u32, offset: i32) {
+        offset_table
+            .entry(original)
+            .and_modify(|e| *e += offset)
+            .or_insert(offset);
+    }
+
+    fn filter_automata_for_mutation(&self, seed: u32) -> HashSet<u32> {
+        if self.tokens.len() == 0 {
+            HashSet::<u32>::new()
+        } else {
+            let magic = 100_u32;
+            let mut filtered_idxs = HashSet::<u32>::new();
+            let final_number = magic / 100 * (self.tokens.len() as u32);
+            let mut curr_number = 0;
+            let mut curr_idx = seed % self.tokens.len() as u32;
+
+            while curr_number < final_number {
+                filtered_idxs.insert(curr_idx);
+                curr_idx = (curr_idx + 1) % self.tokens.len() as u32;
+                curr_number += 1;
+            }
+            filtered_idxs
+        }
+    }
+}
+
+impl Iterator for Mutator {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_seed = self.seeder.get();
+        let mutation_idxs = self.filter_automata_for_mutation(next_seed);
+        let mut offsets = BTreeMap::<u32, i32>::new();
+        let mut result = String::from(self.input);
+        let mut mutated = false;
+        for (
+            idx,
+            AutomatonToken {
+                from,
+                to,
+                automaton,
+            },
+        ) in self.tokens.iter().enumerate()
+        {
+            mutated = true;
+            // if token is up for mutation
+            if mutation_idxs.contains(&(idx as u32)) {
+                if let Some(to_fuzz) = self.input.get(*from as usize..*to as usize) {
+                    let fuzzed = &automaton.traverse(String::from(to_fuzz), next_seed);
+                    result.replace_range(
+                        Self::get_moved_position(&offsets, *from) as usize
+                            ..Self::get_moved_position(&offsets, *to) as usize,
+                        fuzzed,
+                    );
+                    Self::move_position(&mut offsets, *to, fuzzed.len() as i32 - *to as i32);
+                } else {
+                    panic!("Unreachable!");
+                }
+            }
+        }
+        if mutated {
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generation_is_reproducible() {
+        let mut first = Generator::new(&NUMBER_AUTOMATON, 1);
+        let mut sec = Generator::new(&NUMBER_AUTOMATON, 1);
+        assert_eq!(first.next().unwrap(), sec.next().unwrap());
+        assert_eq!(first.next().unwrap(), sec.next().unwrap());
+        assert_eq!(first.next().unwrap(), sec.next().unwrap());
+    }
+
+    #[test]
+    fn generation_is_seedable() {
+        let mut first = Generator::new(&NUMBER_AUTOMATON, 1);
+        let mut sec = Generator::new(&NUMBER_AUTOMATON, 2);
+        assert_ne!(first.next().unwrap(), sec.next().unwrap());
+    }
+
+    #[test]
+    fn empty_input_cannot_be_mutated() {
+        assert_eq!(Mutator::new(1, "").unwrap().next(), None);
+    }
+
+    #[test]
+    fn mutators_require_valid_input() {
+        assert!(Mutator::new(1, "(").is_none());
+    }
+
+    #[test]
+    fn mutation_is_reproducible() {
+        let mut first = Mutator::new(1, "123").unwrap();
+        let mut sec = Mutator::new(1, "123").unwrap();
+        assert_eq!(first.next().unwrap(), sec.next().unwrap());
+    }
+
+    #[test]
+    fn mutation_is_seedable() {
+        let mut first = Mutator::new(1, "123").unwrap();
+        let mut sec = Mutator::new(2, "123").unwrap();
+        assert_ne!(first.next().unwrap(), sec.next().unwrap());
+    }
+
+    #[test]
+    fn mutation_different_inputs_produces_different_result() {
+        let mut first = Mutator::new(1, "123").unwrap();
+        let mut sec = Mutator::new(1, "124").unwrap();
+        assert_ne!(first.next().unwrap(), sec.next().unwrap());
+    }
+
+    #[test]
+    fn mutation_produces_different_result_each_time() {
+        let mut first = Mutator::new(1, "123").unwrap();
+        assert_ne!(first.next().unwrap(), first.next().unwrap());
+    }
+
+    #[test]
+    fn get_moved_position_with_no_offset_table() {
+        assert_eq!(
+            Mutator::get_moved_position(&BTreeMap::<u32, i32>::new(), 1234),
+            1234
+        );
+        assert_eq!(
+            Mutator::get_moved_position(&BTreeMap::<u32, i32>::new(), 0),
+            0
+        );
+        assert_eq!(
+            Mutator::get_moved_position(&BTreeMap::<u32, i32>::new(), 1),
+            1
+        );
+    }
+
+    #[test]
+    fn get_moved_position_with_positive_offsets() {
+        let mut offsets = BTreeMap::<u32, i32>::new();
+        offsets.insert(4, 5);
+        assert_eq!(Mutator::get_moved_position(&offsets, 5), 10);
+    }
+
+    #[test]
+    fn moved_positions_are_not_inclusive() {
+        let mut offsets = BTreeMap::<u32, i32>::new();
+        offsets.insert(5, 5);
+        assert_ne!(Mutator::get_moved_position(&offsets, 5), 10);
+    }
+
+    #[test]
+    fn get_moved_position_with_negative_offsets() {
+        let mut offsets = BTreeMap::<u32, i32>::new();
+        offsets.insert(4, -2);
+        assert_eq!(Mutator::get_moved_position(&offsets, 5), 3);
+    }
+
+    #[test]
+    fn get_moved_position_after_multiple_moves() {
+        let mut offsets = BTreeMap::<u32, i32>::new();
+        offsets.insert(4, 5);
+        offsets.insert(5, 7);
+        offsets.insert(7, -2);
+        assert_eq!(Mutator::get_moved_position(&offsets, 8), 18);
+    }
+
+    #[test]
+    fn move_position_when_offset_table_is_empty() {
+        let mut offsets = BTreeMap::<u32, i32>::new();
+        Mutator::move_position(&mut offsets, 2, 3);
+        assert!(offsets.contains_key(&2));
+        assert_eq!(offsets.get(&2).unwrap(), &3);
+    }
+
+    #[test]
+    fn move_same_position_repeatedly() {
+        let mut offsets = BTreeMap::<u32, i32>::new();
+        Mutator::move_position(&mut offsets, 2, 3);
+        Mutator::move_position(&mut offsets, 2, 5);
+        Mutator::move_position(&mut offsets, 2, -2);
+        assert!(offsets.contains_key(&2));
+        assert_eq!(offsets.get(&2).unwrap(), &6);
+    }
+
+    #[test]
+    fn automata_not_filtered_upon_max_quota_with_single_automaton() {
+        let mutator = Mutator::new(123, "1234").unwrap();
+        assert_eq!(mutator.filter_automata_for_mutation(0).len(), 1);
+        assert_eq!(mutator.filter_automata_for_mutation(1).len(), 1);
+        assert_eq!(mutator.filter_automata_for_mutation(2).len(), 1);
+    }
+
+    #[test]
+    fn automata_not_filtered_upon_max_quota_with_multiple_automata() {
+        let mutator = Mutator::new(123, "[1,2,3]").unwrap();
+        assert_eq!(mutator.filter_automata_for_mutation(0).len(), 4);
+    }
 }

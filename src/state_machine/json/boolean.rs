@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn try_bool() {
         for _i in 1..20 {
-            let res: String = BOOL_AUTOMATON.traverse(String::from("false"));
+            let res: String = BOOL_AUTOMATON.traverse(String::from("false"), 123);
             println!("Res is: {}", res);
         }
     }
@@ -79,7 +79,7 @@ mod tests {
     #[test]
     fn try_bool1() {
         for _i in 1..20 {
-            let res: String = BOOL_AUTOMATON.generate();
+            let res: String = BOOL_AUTOMATON.generate(123);
             println!("Res is: {}", res);
         }
     }
