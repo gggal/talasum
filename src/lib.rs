@@ -6,11 +6,13 @@
 
 use crate::tokenizer::tokenize_input;
 use randomization::prandomizer::PRandomizer;
+use state_machine::json::boolean::BOOL_AUTOMATON;
 use state_machine::json::number::NUMBER_AUTOMATON;
 use state_machine::Automaton;
 use std::collections::{BTreeMap, HashSet};
 use tokenizer::json_lexer::{JsonLexer, Rule};
-use tokenizer::AutomatonToken;
+use tokenizer::{AutomatonToken, LexerRule};
+use pest::Parser;
 
 pub mod randomization;
 pub mod state_machine;
@@ -23,7 +25,27 @@ extern crate pest_derive;
 #[macro_use]
 extern crate lazy_static;
 
-struct Generator<T: 'static + Eq> {
+pub mod json {
+    use crate::tokenizer::json_lexer::{JsonLexer, Rule};
+
+    pub mod number {
+        pub fn generator(seed: u32) -> super::super::Generator<String> {
+            super::super::Generator::<String>::new(&super::super::NUMBER_AUTOMATON, seed)
+        }
+    }
+
+    pub mod boolean {
+        pub fn generator(seed: u32) -> super::super::Generator<String> {
+            super::super::Generator::<String>::new(&super::super::BOOL_AUTOMATON, seed)
+        }
+    }
+
+    pub fn mutator(input: &'static str, seed: u32) -> Option<super::Mutator> {
+        super::Mutator::new::<JsonLexer, Rule>(seed, input, Rule::value)
+    }
+}
+
+pub struct Generator<T: 'static + Eq> {
     automaton: &'static Automaton<T>,
     seeder: PRandomizer,
 }
@@ -45,15 +67,15 @@ impl<T: Eq + core::fmt::Debug> Iterator for Generator<T> {
     }
 }
 
-struct Mutator {
+pub struct Mutator {
     seeder: PRandomizer,
     tokens: Vec<tokenizer::AutomatonToken<'static>>,
     input: &'static str,
 }
 
 impl Mutator {
-    fn new(seed: u32, input: &'static str) -> Option<Self> {
-        match tokenize_input::<JsonLexer, Rule>(input, Rule::value) {
+    fn new<P: Parser<R>, R:  'static + LexerRule>(seed: u32, input: &'static str, rule: R) -> Option<Self> {
+        match tokenize_input::<P, R>(input, rule) {
             Some(tokens) => Some(Self {
                 seeder: PRandomizer::new(seed as u64),
                 tokens: tokens,
@@ -163,38 +185,38 @@ mod tests {
 
     #[test]
     fn empty_input_cannot_be_mutated() {
-        assert_eq!(Mutator::new(1, "").unwrap().next(), None);
+        assert_eq!(Mutator::new::<JsonLexer, Rule>(1, "", Rule::value).unwrap().next(), None);
     }
 
     #[test]
     fn mutators_require_valid_input() {
-        assert!(Mutator::new(1, "(").is_none());
+        assert!(Mutator::new::<JsonLexer, Rule>(1, "(", Rule::value).is_none());
     }
 
     #[test]
     fn mutation_is_reproducible() {
-        let mut first = Mutator::new(1, "123").unwrap();
-        let mut sec = Mutator::new(1, "123").unwrap();
+        let mut first = Mutator::new::<JsonLexer, Rule>(1, "123", Rule::value).unwrap();
+        let mut sec = Mutator::new::<JsonLexer, Rule>(1, "123", Rule::value).unwrap();
         assert_eq!(first.next().unwrap(), sec.next().unwrap());
     }
 
     #[test]
     fn mutation_is_seedable() {
-        let mut first = Mutator::new(1, "123").unwrap();
-        let mut sec = Mutator::new(2, "123").unwrap();
+        let mut first = Mutator::new::<JsonLexer, Rule>(1, "1", Rule::value).unwrap();
+        let mut sec = Mutator::new::<JsonLexer, Rule>(2, "1", Rule::value).unwrap();
         assert_ne!(first.next().unwrap(), sec.next().unwrap());
     }
 
     #[test]
     fn mutation_different_inputs_produces_different_result() {
-        let mut first = Mutator::new(1, "123").unwrap();
-        let mut sec = Mutator::new(1, "124").unwrap();
+        let mut first = Mutator::new::<JsonLexer, Rule>(1, "123", Rule::value).unwrap();
+        let mut sec = Mutator::new::<JsonLexer, Rule>(1, "124", Rule::value).unwrap();
         assert_ne!(first.next().unwrap(), sec.next().unwrap());
     }
 
     #[test]
     fn mutation_produces_different_result_each_time() {
-        let mut first = Mutator::new(1, "123").unwrap();
+        let mut first = Mutator::new::<JsonLexer, Rule>(1, "123", Rule::value).unwrap();
         assert_ne!(first.next().unwrap(), first.next().unwrap());
     }
 
@@ -264,7 +286,7 @@ mod tests {
 
     #[test]
     fn automata_not_filtered_upon_max_quota_with_single_automaton() {
-        let mutator = Mutator::new(123, "1234").unwrap();
+        let mutator = Mutator::new::<JsonLexer, Rule>(123, "1234", Rule::value).unwrap();
         assert_eq!(mutator.filter_automata_for_mutation(0).len(), 1);
         assert_eq!(mutator.filter_automata_for_mutation(1).len(), 1);
         assert_eq!(mutator.filter_automata_for_mutation(2).len(), 1);
@@ -272,7 +294,7 @@ mod tests {
 
     #[test]
     fn automata_not_filtered_upon_max_quota_with_multiple_automata() {
-        let mutator = Mutator::new(123, "[1,2,3]").unwrap();
+        let mutator = Mutator::new::<JsonLexer, Rule>(123, "[1,2,3]", Rule::value).unwrap();
         assert_eq!(mutator.filter_automata_for_mutation(0).len(), 4);
     }
 }
