@@ -1,6 +1,8 @@
 // use crate::state_machine::Basic;
 use rand::thread_rng;
 use rand::RngCore;
+
+use crate::randomization::prandomizer::PRandomizer;
 pub mod json;
 pub mod weights;
 
@@ -45,24 +47,19 @@ impl<T: Eq + core::fmt::Debug> Automaton<T> {
         (self.generator)(seed)
     }
 
-    // TODO delete this method
-    fn seed(&self) -> Box<dyn RngCore> {
-        Box::new(thread_rng())
-    }
+    pub fn generate(&self, seed: u32) -> T {
+        // let mut seed: Box<dyn RngCore> = self.seed();
 
-    fn generate(&self) -> T {
-        let mut seed: Box<dyn RngCore> = self.seed();
-
-        self.traverse(self.init_value(seed.as_mut().next_u32()))
+        self.traverse(self.init_value(seed), seed)
     }
 
     // Traverses the graph and computes the end value
-    fn traverse(&self, input: T) -> T {
+    pub fn traverse(&self, input: T, seed1: u32) -> T {
         // !TODO rename to mutate ?
-        let mut seed: Box<dyn RngCore> = self.seed();
+        let mut seed = PRandomizer::new(seed1 as u64);
         let mut value: T = input;
         let mut state: Option<&AutomatonNode<T>> = Some(self.init_state());
-        let mut rand = seed.as_mut().next_u32();
+        let mut rand = seed.get();
         while let Some(AutomatonNode {
             transition,
             transformation,
@@ -70,7 +67,7 @@ impl<T: Eq + core::fmt::Debug> Automaton<T> {
         {
             value = transformation(value);
             state = transition(rand);
-            rand = seed.as_mut().next_u32();
+            rand = seed.get();
         }
 
         value

@@ -88,7 +88,7 @@ mod tests {
     #[test]
     fn try_number() {
         for _i in 1..20 {
-            let res: String = super::NUMBER_AUTOMATON.traverse(String::from("1"));
+            let res: String = super::NUMBER_AUTOMATON.traverse(String::from("1"), 123);
             println!("Res is: {}", res);
         }
     }
@@ -96,7 +96,7 @@ mod tests {
     #[test]
     fn try_number1() {
         for _i in 1..20 {
-            let res: String = super::NUMBER_AUTOMATON.generate();
+            let res: String = super::NUMBER_AUTOMATON.generate(123);
             println!("Res is: {}", res);
         }
     }

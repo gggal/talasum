@@ -67,7 +67,7 @@ mod tests {
     #[test]
     fn try_null() {
         for _i in 1..20 {
-            let res: String = NULL_AUTOMATON.traverse(String::from("null"));
+            let res: String = NULL_AUTOMATON.traverse(String::from("null"), 123);
             println!("Res is: {}", res);
         }
     }
@@ -75,7 +75,7 @@ mod tests {
     #[test]
     fn try_null2() {
         for _i in 1..20 {
-            let res: String = super::NULL_AUTOMATON.generate();
+            let res: String = super::NULL_AUTOMATON.generate(123);
             println!("Res is: {}", res);
         }
     }
