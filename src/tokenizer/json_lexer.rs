@@ -96,7 +96,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn fail_to_tokenize_invalid_json() {
-        let result = tokenize_json_input_helper("asd");
+        tokenize_json_input_helper("asd");
     }
 
     // fn type_of<T>(_: &T) -> String {

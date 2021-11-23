@@ -10,7 +10,6 @@ use state_machine::json::boolean::BOOL_AUTOMATON;
 use state_machine::json::number::NUMBER_AUTOMATON;
 use state_machine::Automaton;
 use std::collections::{BTreeMap, HashSet};
-use tokenizer::json_lexer::{JsonLexer, Rule};
 use tokenizer::{AutomatonToken, LexerRule};
 use pest::Parser;
 
@@ -166,6 +165,7 @@ impl Iterator for Mutator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokenizer::json_lexer::{JsonLexer, Rule};
 
     #[test]
     fn generation_is_reproducible() {
