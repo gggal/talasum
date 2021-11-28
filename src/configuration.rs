@@ -107,7 +107,7 @@ lazy_static! {
 
 #[cfg(test)]
 mod tests {
-    use super::{Config, Configurable, MockConfig};
+    use super::{Config, Configurable};
     // use std::env;
 
     #[test]
