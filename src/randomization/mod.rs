@@ -37,7 +37,7 @@ pub fn random_digit_string_long(seed: u32) -> String {
     randomizer.get().to_string().repeat(10)
 }
 
-pub fn random_position(word: &String, seed: u32) -> Option<u32> {
+pub fn random_position(word: &str, seed: u32) -> Option<u32> {
     if word.is_empty() {
         None
     } else {
@@ -54,11 +54,9 @@ pub fn to_upper_case(s: String) -> String {
     s.to_ascii_uppercase()
 }
 
-pub fn to_capitalized(s: String) -> String {
-    let mut to_return = s.clone();
-    to_return[0..1].make_ascii_uppercase();
-    // print!("Debug {}", to_return);
-    to_return
+pub fn to_capitalized(mut s: String) -> String {
+    s[0..1].make_ascii_uppercase();
+    s
 }
 
 pub fn to_random_case(s: String) -> String {

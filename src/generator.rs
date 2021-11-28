@@ -9,7 +9,7 @@ pub struct Generator<T: 'static + Eq> {
 impl<T: Eq> Generator<T> {
     pub fn new(automaton: &'static Automaton<T>, seed: u32) -> Self {
         Self {
-            automaton: automaton,
+            automaton,
             seeder: PRandomizer::new(seed as u64),
         }
     }

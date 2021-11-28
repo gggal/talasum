@@ -48,7 +48,7 @@ pub fn tokenize_input<P: Parser<R>, R: 'static + LexerRule>(
     text: &str,
     parent_rule: R,
 ) -> Option<Vec<AutomatonToken>> {
-    if text.len() == 0 {
+    if text.is_empty() {
         Some(vec![])
     } else {
         match P::parse(parent_rule, text) {

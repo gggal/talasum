@@ -18,17 +18,17 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
     // Magic == 0 is invalid and will break tests!!!
     pub fn new(mut weights: Vec<WeightedTransition<T>>, magic: u32) -> Self {
         // sort the weights in ascending order, group into same numbers, multiply with 10*x, loop over and recalc
-        weights.sort_by(|(w1, _), (w2, _)| w1.partial_cmp(&w2).unwrap());
+        weights.sort_by(|(w1, _), (w2, _)| w1.partial_cmp(w2).unwrap());
 
         let mut prev_weight = 0;
         let mut recalculated = Vec::<WeightedTransition<T>>::new();
         let mut top_limit = 0;
 
-        for (weight, mut group) in &weights.into_iter().group_by(|(w, _)| *w) {
+        for (weight, group) in &weights.into_iter().group_by(|(w, _)| *w) {
             let new_val = weight * magic + prev_weight * (100 - magic);
             prev_weight = weight;
 
-            while let Some((_, tr)) = group.next() {
+            for (_, tr) in group {
                 top_limit += new_val;
                 recalculated.push((top_limit, tr));
             }

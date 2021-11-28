@@ -10,22 +10,22 @@ pub struct SkewedPRandomizer {
 
 impl SkewedPRandomizer {
     pub fn new(seed: u64, mut peeks: Vec<u32>) -> Self {
-        peeks.sort();
+        peeks.sort_unstable();
         Self {
             generator: Pcg32::seed_from_u64(seed),
             lower_limit: 0_u32,
             upper_limit: u32::MAX,
-            peeks: peeks,
+            peeks,
         }
     }
 
     pub fn new_limited(seed: u64, from: u32, to: u32, mut peeks: Vec<u32>) -> Self {
-        peeks.sort();
+        peeks.sort_unstable();
         Self {
             generator: Pcg32::seed_from_u64(seed),
             lower_limit: from,
             upper_limit: to,
-            peeks: peeks,
+            peeks,
         }
     }
 
@@ -133,7 +133,7 @@ mod tests {
         let mut gen2 = SkewedPRandomizer::new_limited(123, 0, 1000, Vec::new());
 
         for i in 0..100 {
-            print!("{}: {}, {}\n", i, gen1.get(), gen2.get());
+            println!("{}: {}, {}", i, gen1.get(), gen2.get());
         }
     }
 }

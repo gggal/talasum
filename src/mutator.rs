@@ -16,14 +16,11 @@ impl Mutator {
         input: &'static str,
         rule: R,
     ) -> Option<Self> {
-        match tokenize_input::<P, R>(input, rule) {
-            Some(tokens) => Some(Self {
-                seeder: PRandomizer::new(seed as u64),
-                tokens: tokens,
-                input: input,
-            }),
-            None => None,
-        }
+        tokenize_input::<P, R>(input, rule).map(|tokens| Self {
+            seeder: PRandomizer::new(seed as u64),
+            tokens,
+            input,
+        })
     }
 
     // calculated the new position of that element based on previous moves
@@ -43,7 +40,7 @@ impl Mutator {
     }
 
     fn filter_automata_for_mutation(&self, seed: u32) -> HashSet<u32> {
-        if self.tokens.len() == 0 {
+        if self.tokens.is_empty() {
             HashSet::<u32>::new()
         } else {
             let magic = CONFIG.get_horizontal_randomness_coef();
