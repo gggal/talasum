@@ -10,9 +10,9 @@ use state_machine::json::number::NUMBER_AUTOMATON;
 mod configuration;
 pub mod generator;
 pub mod mutator;
-pub mod randomization;
-pub mod state_machine;
-pub mod tokenizer;
+mod randomization;
+mod state_machine;
+mod tokenizer;
 
 extern crate pest;
 #[macro_use]

@@ -32,24 +32,6 @@ pub fn random_digit_string(seed: u32) -> String {
     randomizer.get().to_string()
 }
 
-pub fn random_digit_string_long(seed: u32) -> String {
-    let mut randomizer = PRandomizer::new_limited(seed as u64, 1_u32 << 30, u32::MAX);
-    randomizer.get().to_string().repeat(10)
-}
-
-pub fn random_position(word: &str, seed: u32) -> Option<u32> {
-    if word.is_empty() {
-        None
-    } else {
-        Some(seed % word.len() as u32)
-    }
-}
-
-pub fn random_bool(seed: u32) -> bool {
-    let mut randomizer = PRandomizer::new(seed as u64);
-    randomizer.get() % 2 == 0
-}
-
 pub fn to_upper_case(s: String) -> String {
     s.to_ascii_uppercase()
 }
@@ -95,30 +77,5 @@ mod common_json_tests {
     fn random_capitalization_can_randomize_uppercase_string() {
         let res1 = random_capitalization(123322, String::from("THIS IS MY TEST"));
         assert_ne!(res1, String::from("THIS IS MY TEST"));
-    }
-
-    #[test]
-    fn random_position_for_empty_string_is_none() {
-        let pos1 = random_position(&String::from(""), 0);
-        let pos2 = random_position(&String::from(""), 123);
-        let pos3 = random_position(&String::from(""), 123123);
-        assert_eq!(None, pos1);
-        assert_eq!(None, pos2);
-        assert_eq!(None, pos3);
-    }
-
-    #[test]
-    fn random_position_depends_on_seed() {
-        let pos1 = random_position(&String::from("Some string"), 12345);
-        let pos2 = random_position(&String::from("Some string"), 12346);
-        assert_ne!(pos1, pos2);
-    }
-
-    #[test]
-    fn random_position_is_always_in_strings_range() {
-        let pos1 = random_position(&String::from("Bigger than seed"), 2);
-        let pos2 = random_position(&String::from("Lesser than seed"), 123123);
-        assert_eq!(pos1, Some(2));
-        assert_eq!(pos2, Some(3));
     }
 }

@@ -6,6 +6,7 @@ use rand_pcg::Pcg32;
 // A class for which each object accepts
 // a number in its constructor and uses it to
 // create the internal generator object
+
 pub struct PRandomizer {
     generator: Pcg32,
     lower_limit: u32,
@@ -21,6 +22,7 @@ impl PRandomizer {
         }
     }
 
+    #[allow(dead_code)]
     pub fn new_limited(seed: u64, from: u32, to: u32) -> Self {
         Self {
             generator: Pcg32::seed_from_u64(seed),

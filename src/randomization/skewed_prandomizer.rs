@@ -9,6 +9,7 @@ pub struct SkewedPRandomizer {
 }
 
 impl SkewedPRandomizer {
+    #[allow(dead_code)]
     pub fn new(seed: u64, mut peeks: Vec<u32>) -> Self {
         peeks.sort_unstable();
         Self {
