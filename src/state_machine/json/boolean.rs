@@ -4,11 +4,14 @@ use crate::state_machine::{Automaton, AutomatonNode};
 
 lazy_static! {
     static ref START_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![(4, None), (1, Some(&REVERSE_BOOLEAN))],
+        transition: choose(vec![(4, None), (1, Some(&REVERSE_BOOLEAN))]),
         transformation: super::IDENTITY,
     };
     static ref REVERSE_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![(1, Some(&CASED_BOOLEAN)), (1, Some(&NUMERICAL_BOOLEAN))],
+        transition: choose(vec![
+            (1, Some(&CASED_BOOLEAN)),
+            (1, Some(&NUMERICAL_BOOLEAN))
+        ]),
         transformation: |input| {
             if input == "true" {
                 String::from("false")
@@ -18,7 +21,7 @@ lazy_static! {
         },
     };
     static ref NUMERICAL_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![(1, Some(&QUOTED_BOOLEAN)), (4, Some(&CASED_BOOLEAN))],
+        transition: choose(vec![(1, Some(&QUOTED_BOOLEAN)), (4, Some(&CASED_BOOLEAN))]),
         transformation: |input| {
             if input == "true" {
                 String::from("1")
@@ -28,28 +31,28 @@ lazy_static! {
         },
     };
     static ref QUOTED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![(1, Some(&CASED_BOOLEAN))],
+        transition: choose(vec![(1, Some(&CASED_BOOLEAN))]),
         transformation: |text| format!("\"{}\"", text),
     };
     static ref CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![
+        transition: choose(vec![
             (1, Some(&UPPER_CASED_BOOLEAN)),
             (1, Some(&RANDOM_CASED_BOOLEAN)),
             (1, Some(&CAPITALIZED_BOOLEAN)),
             (7, None)
-        ],
+        ]),
         transformation: super::IDENTITY,
     };
     static ref UPPER_CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![(1, None)],
+        transition: choose(vec![(1, None)]),
         transformation: |text| to_upper_case(text),
     };
     static ref RANDOM_CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![(1, None)],
+        transition: choose(vec![(1, None)]),
         transformation: |text| to_random_case(text),
     };
     static ref CAPITALIZED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![(1, None)],
+        transition: choose(vec![(1, None)]),
         transformation: |text| to_capitalized(text),
     };
     pub static ref BOOL_AUTOMATON: Automaton<String> = Automaton::<String> {

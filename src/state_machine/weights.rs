@@ -1,19 +1,10 @@
 use super::{AutomatonNode, Transition};
+use crate::configuration::{Configurable, CONFIG};
 use itertools::Itertools;
 
-macro_rules! choose {
-    ( $( ($w:expr, $x:expr) ),* ) => {
-        {
-            TransitionChoice::new(vec![
-                $(
-                    ($w, $x),
-                )*
-            ], 100).choose()
-        }
-    };
+pub fn choose(vec: Vec<WeightedTransition<String>>) -> Transition<String> {
+    TransitionChoice::<String>::new(vec, CONFIG.get_vertical_randomness_coef()).choose()
 }
-pub(crate) use choose;
-
 pub struct TransitionChoice<T: 'static + Clone + Sync> {
     weights: Vec<WeightedTransition<T>>,
 }
@@ -258,11 +249,9 @@ mod tests {
 
     #[test]
     fn choose_macro_expands_correctly() {
-        assert_eq!(
-            (choose![(1, Some(&TEST_NODE1))](1234)
-                .unwrap()
-                .transformation)(String::new()),
-            "Test1"
-        );
+        let func = choose(vec![(1, Some(&TEST_NODE1))])(1234)
+            .unwrap()
+            .transformation;
+        assert_eq!(func(String::new()), "Test1");
     }
 }

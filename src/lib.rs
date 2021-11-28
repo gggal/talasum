@@ -5,14 +5,15 @@
 //! http, json, more
 
 use crate::tokenizer::tokenize_input;
+use pest::Parser;
 use randomization::prandomizer::PRandomizer;
 use state_machine::json::boolean::BOOL_AUTOMATON;
 use state_machine::json::number::NUMBER_AUTOMATON;
 use state_machine::Automaton;
 use std::collections::{BTreeMap, HashSet};
 use tokenizer::{AutomatonToken, LexerRule};
-use pest::Parser;
 
+mod configuration;
 pub mod randomization;
 pub mod state_machine;
 pub mod tokenizer;
@@ -21,8 +22,16 @@ extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
+extern crate config;
+
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+
 #[macro_use]
 extern crate lazy_static;
+
+use crate::configuration::{Configurable, CONFIG};
 
 pub mod json {
     use crate::tokenizer::json_lexer::{JsonLexer, Rule};
@@ -73,7 +82,11 @@ pub struct Mutator {
 }
 
 impl Mutator {
-    fn new<P: Parser<R>, R:  'static + LexerRule>(seed: u32, input: &'static str, rule: R) -> Option<Self> {
+    fn new<P: Parser<R>, R: 'static + LexerRule>(
+        seed: u32,
+        input: &'static str,
+        rule: R,
+    ) -> Option<Self> {
         match tokenize_input::<P, R>(input, rule) {
             Some(tokens) => Some(Self {
                 seeder: PRandomizer::new(seed as u64),
@@ -104,7 +117,7 @@ impl Mutator {
         if self.tokens.len() == 0 {
             HashSet::<u32>::new()
         } else {
-            let magic = 100_u32;
+            let magic = CONFIG.get_horizontal_randomness_coef();
             let mut filtered_idxs = HashSet::<u32>::new();
             let final_number = magic / 100 * (self.tokens.len() as u32);
             let mut curr_number = 0;
@@ -185,7 +198,12 @@ mod tests {
 
     #[test]
     fn empty_input_cannot_be_mutated() {
-        assert_eq!(Mutator::new::<JsonLexer, Rule>(1, "", Rule::value).unwrap().next(), None);
+        assert_eq!(
+            Mutator::new::<JsonLexer, Rule>(1, "", Rule::value)
+                .unwrap()
+                .next(),
+            None
+        );
     }
 
     #[test]

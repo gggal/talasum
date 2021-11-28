@@ -4,21 +4,21 @@ use crate::state_machine::{Automaton, AutomatonNode};
 
 lazy_static! {
     static ref CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![
+        transition: choose(vec![
             (1, Some(&UPPER_CASED_NULL)),
             (1, Some(&RANDOM_CASED_NULL)),
             (1, Some(&CAPITALIZED_NULL))
-        ],
+        ]),
         transformation: super::IDENTITY,
     };
 
     static ref START_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![
+        transition: choose(vec![
             (4, Some(&CASED_NULL)),
             (2, Some(&NIL_NULL)),
             (2, Some(&NONE_NULL)),
             (2, Some(&ZERO_NULL))
-        ],
+        ]),
         transformation: super::IDENTITY,
     };
 

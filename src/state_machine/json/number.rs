@@ -4,23 +4,23 @@ use crate::state_machine::{Automaton, AutomatonNode};
 
 lazy_static! {
     static ref START_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![
+        transition: choose(vec![
             (4, Some(&REAL_NUMBER)),
             (4, Some(&NATURAL_NUMBER)),
             // (1, Some(&super::null::START_NULL),
             (1,Some(&HEX_NUMBER)),
             (1,Some(&OCTAL_NUMBER))
-        ],
+        ]),
         transformation: IDENTITY,
     };
 
     static ref REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![
+        transition: choose(vec![
             (10,Some(&SCI_NOTATION_REAL_NUMBER)),
             (35, Some(&SIGNED_NUMBER)),
             (15, Some(&DECIMAL_COMMA_REAL_NUMBER)),
             (40, None)
-        ],
+        ]),
         transformation: |num| {
             let num1 = num.parse::<u32>().unwrap();
             let delim = num1 % 10 + 1;
@@ -29,41 +29,41 @@ lazy_static! {
     };
 
     static ref DECIMAL_COMMA_REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![
+        transition: choose(vec![
             (1,Some(&SIGNED_NUMBER)),
             (1,None)
-        ],
+        ]),
         transformation: |num| str::replace(&num, ".", ","),
     };
 
     static ref NATURAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![
+        transition: choose(vec![
             (1,Some(&SIGNED_NUMBER)),
             (1,None)
-        ],
+        ]),
         transformation: super::IDENTITY,
     };
 
     static ref HEX_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![],
+        transition: choose(vec![]),
         transformation: |input| format!("{:#01x}", input.parse::<u32>().unwrap()),
     };
 
     static ref OCTAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![],
+        transition: choose(vec![]),
         transformation: |input| format!("0{:o}", input.parse::<u32>().unwrap()),
     };
 
     static ref SCI_NOTATION_REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![
+        transition: choose(vec![
             (1, Some(&SIGNED_NUMBER)),
             (1, None)
-        ],
+        ]),
         transformation: |num| format!("{:+e}", num.parse::<u32>().unwrap()),
     };
 
     static ref SIGNED_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose![],
+        transition: choose(vec![]),
         transformation: |num| format!("-{}", num)
     };
 
