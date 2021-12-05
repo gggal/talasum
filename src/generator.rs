@@ -1,17 +1,14 @@
-use crate::randomization::prandomizer::PRandomizer;
+use crate::randomness::Randomizer;
 use crate::state_machine::Automaton;
 
 pub struct Generator<T: 'static + Eq> {
     automaton: &'static Automaton<T>,
-    seeder: PRandomizer,
+    seeder: Box<dyn Randomizer>,
 }
 
 impl<T: Eq> Generator<T> {
-    pub fn new(automaton: &'static Automaton<T>, seed: u64) -> Self {
-        Self {
-            automaton,
-            seeder: PRandomizer::new(seed),
-        }
+    pub fn new(automaton: &'static Automaton<T>, seeder: Box<dyn Randomizer>) -> Self {
+        Self {automaton, seeder}
     }
 }
 
@@ -27,11 +24,12 @@ impl<T: Eq + core::fmt::Debug> Iterator for Generator<T> {
 mod tests {
     use super::Generator;
     use crate::state_machine::json::number::NUMBER_AUTOMATON;
+    use crate::randomness::PRandomizer;
 
     #[test]
     fn generation_is_reproducible() {
-        let mut first = Generator::new(&NUMBER_AUTOMATON, 1);
-        let mut sec = Generator::new(&NUMBER_AUTOMATON, 1);
+        let mut first = Generator::new(&NUMBER_AUTOMATON, Box::new(PRandomizer::new(1)));
+        let mut sec = Generator::new(&NUMBER_AUTOMATON, Box::new(PRandomizer::new(1)));
         assert_eq!(first.next().unwrap(), sec.next().unwrap());
         assert_eq!(first.next().unwrap(), sec.next().unwrap());
         assert_eq!(first.next().unwrap(), sec.next().unwrap());
@@ -39,8 +37,8 @@ mod tests {
 
     #[test]
     fn generation_is_seedable() {
-        let mut first = Generator::new(&NUMBER_AUTOMATON, 1);
-        let mut sec = Generator::new(&NUMBER_AUTOMATON, 2);
+        let mut first = Generator::new(&NUMBER_AUTOMATON, Box::new(PRandomizer::new(1)));
+        let mut sec = Generator::new(&NUMBER_AUTOMATON,Box::new(PRandomizer::new(2)));
         assert_ne!(first.next().unwrap(), sec.next().unwrap());
     }
 }

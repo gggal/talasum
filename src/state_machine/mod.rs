@@ -1,6 +1,7 @@
-use crate::randomization::prandomizer::PRandomizer;
+use crate::randomness::{PRandomizer, Randomizer};
 pub mod json;
 pub mod weights;
+pub mod helper;
 
 // Transition is an operation to be performed on a value, as it's moved
 // through the automaton
@@ -14,7 +15,7 @@ type Generate<T> = fn(u64) -> T;
 
 /// Magi Automaton states represent automaton states (graph nodes). Each is qualified
 /// by a set of edges. Which edge is chosen depends on the seed's next value,
-/// meaning decisions are retraceble (since they are based on pseudo-randomness).
+/// meaning decisions are retraceable (since they are based on pseudo-randomness).
 pub struct AutomatonNode<T: 'static> {
     transition: Transition<T>,
     transformation: Transformation<T>,
@@ -44,8 +45,6 @@ impl<T: Eq + core::fmt::Debug> Automaton<T> {
     }
 
     pub fn generate(&self, seed: u64) -> T {
-        // let mut seed: Box<dyn RngCore> = self.seed();
-
         self.traverse(self.init_value(seed), seed)
     }
 

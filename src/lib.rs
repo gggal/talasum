@@ -10,7 +10,7 @@ use state_machine::json::number::NUMBER_AUTOMATON;
 mod configuration;
 pub mod generator;
 pub mod mutator;
-mod randomization;
+mod randomness;
 mod state_machine;
 mod tokenizer;
 
@@ -30,22 +30,25 @@ extern crate lazy_static;
 use crate::generator::Generator;
 use crate::mutator::Mutator;
 
+
+// TODO add doc-tests
 pub mod json {
     use crate::tokenizer::json_lexer::{JsonLexer, Rule};
+    use crate::randomness::PRandomizer;
 
     pub mod number {
         pub fn generator(seed: u64) -> super::super::Generator<String> {
-            super::super::Generator::<String>::new(&super::super::NUMBER_AUTOMATON, seed)
+            super::super::Generator::<String>::new(&super::super::NUMBER_AUTOMATON, Box::new(super::PRandomizer::new(seed)))
         }
     }
 
     pub mod boolean {
         pub fn generator(seed: u64) -> super::super::Generator<String> {
-            super::super::Generator::<String>::new(&super::super::BOOL_AUTOMATON, seed)
+            super::super::Generator::<String>::new(&super::super::BOOL_AUTOMATON, Box::new(super::PRandomizer::new(seed)))
         }
     }
 
     pub fn mutator(input: &'static str, seed: u64) -> Option<super::Mutator> {
-        super::Mutator::new::<JsonLexer, Rule>(seed, input, Rule::value)
+        super::Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(seed)), input, Rule::value)
     }
 }

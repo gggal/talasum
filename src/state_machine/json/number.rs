@@ -1,5 +1,6 @@
 use super::super::weights::*;
-use super::{randomization::*, IDENTITY};
+use super::super::helper::*;
+use super::IDENTITY;
 use crate::state_machine::{Automaton, AutomatonNode};
 
 lazy_static! {
@@ -22,7 +23,7 @@ lazy_static! {
             (40, None)
         ]),
         transformation: |num| {
-            let num1 = num.parse::<u32>().unwrap();
+            let num1 = num.parse::<u64>().unwrap();
             let delim = num1 % 10 + 1;
             (num1 / (100 * delim)).to_string()
         },
@@ -46,12 +47,12 @@ lazy_static! {
 
     static ref HEX_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
         transition: choose(vec![]),
-        transformation: |input| format!("{:#01x}", input.parse::<u32>().unwrap()),
+        transformation: |input| format!("{:#01x}", input.parse::<u64>().unwrap()),
     };
 
     static ref OCTAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
         transition: choose(vec![]),
-        transformation: |input| format!("0{:o}", input.parse::<u32>().unwrap()),
+        transformation: |input| format!("0{:o}", input.parse::<u64>().unwrap()),
     };
 
     static ref SCI_NOTATION_REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
@@ -59,7 +60,7 @@ lazy_static! {
             (1, Some(&SIGNED_NUMBER)),
             (1, None)
         ]),
-        transformation: |num| format!("{:+e}", num.parse::<u32>().unwrap()),
+        transformation: |num| format!("{:+e}", num.parse::<u64>().unwrap()),
     };
 
     static ref SIGNED_NUMBER: AutomatonNode<String> = AutomatonNode::<String> {
@@ -87,16 +88,16 @@ mod tests {
 
     #[test]
     fn try_number() {
-        for _i in 1..20 {
-            let res: String = super::NUMBER_AUTOMATON.traverse(String::from("1"), 123);
+        for i in 1..20 {
+            let res: String = super::NUMBER_AUTOMATON.traverse(String::from("1"), i);
             println!("Res is: {}", res);
         }
     }
 
     #[test]
     fn try_number1() {
-        for _i in 1..20 {
-            let res: String = super::NUMBER_AUTOMATON.generate(123);
+        for i in 1..20 {
+            let res: String = super::NUMBER_AUTOMATON.generate(i);
             println!("Res is: {}", res);
         }
     }

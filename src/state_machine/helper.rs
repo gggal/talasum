@@ -1,8 +1,4 @@
-pub mod prandomizer;
-pub mod skewed_prandomizer;
-
-use prandomizer::PRandomizer;
-use skewed_prandomizer::SkewedPRandomizer;
+use super::{PRandomizer, Randomizer};
 
 pub fn char_flip_case(ch: char) -> char {
     if ch.is_uppercase() {
@@ -26,10 +22,8 @@ pub fn random_capitalization(seed: u64, to_transform: String) -> String {
     transformed
 }
 
-// less > 2^32
 pub fn random_digit_string(seed: u64) -> String {
-    let mut randomizer = SkewedPRandomizer::new_limited(seed, 0, 1_u32 << 20, vec![1, 1000]);
-    randomizer.get().to_string()
+    seed.to_string()
 }
 
 pub fn to_upper_case(s: String) -> String {
@@ -42,11 +36,12 @@ pub fn to_capitalized(mut s: String) -> String {
 }
 
 pub fn to_random_case(s: String) -> String {
-    super::randomization::random_capitalization(123, s)
+    random_capitalization(123, s)
 }
 
+
 #[cfg(test)]
-mod common_json_tests {
+mod tests {
     use super::*;
 
     #[test]
