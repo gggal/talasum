@@ -30,21 +30,26 @@ extern crate lazy_static;
 use crate::generator::Generator;
 use crate::mutator::Mutator;
 
-
 // TODO add doc-tests
 pub mod json {
-    use crate::tokenizer::json_lexer::{JsonLexer, Rule};
     use crate::randomness::PRandomizer;
+    use crate::tokenizer::json_lexer::{JsonLexer, Rule};
 
     pub mod number {
         pub fn generator(seed: u64) -> super::super::Generator<String> {
-            super::super::Generator::<String>::new(&super::super::NUMBER_AUTOMATON, Box::new(super::PRandomizer::new(seed)))
+            super::super::Generator::<String>::new(
+                &super::super::NUMBER_AUTOMATON,
+                Box::new(super::PRandomizer::new(seed)),
+            )
         }
     }
 
     pub mod boolean {
         pub fn generator(seed: u64) -> super::super::Generator<String> {
-            super::super::Generator::<String>::new(&super::super::BOOL_AUTOMATON, Box::new(super::PRandomizer::new(seed)))
+            super::super::Generator::<String>::new(
+                &super::super::BOOL_AUTOMATON,
+                Box::new(super::PRandomizer::new(seed)),
+            )
         }
     }
 

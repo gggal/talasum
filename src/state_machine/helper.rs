@@ -39,7 +39,6 @@ pub fn to_random_case(s: String) -> String {
     random_capitalization(123, s)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

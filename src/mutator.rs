@@ -52,8 +52,8 @@ impl Mutator {
     /// moved to index 3.
     fn get_moved_index(offset_table: &BTreeMap<usize, i64>, original: usize) -> usize {
         offset_table
-                .range(0..original)
-                .fold(original, |acc, (_, offset)| (acc as i64 + offset) as usize)
+            .range(0..original)
+            .fold(original, |acc, (_, offset)| (acc as i64 + offset) as usize)
     }
 
     /// Reflects an index move of the element at `original` in the `offset_table`.
@@ -73,8 +73,8 @@ impl Mutator {
     /// fuzzed is directly proportional to the horizontal fuzzing coefficient:
     /// If the H coefficient is set to max, every single token in the input
     /// will be fuzzed, effectively simulating the behavior of a [`crate::Generator`].
-    /// 
-    /// Outputs the indices of the tokens to be fuzzed. 
+    ///
+    /// Outputs the indices of the tokens to be fuzzed.
     fn choose_for_mutation(&self, seed: u64) -> HashSet<usize> {
         if self.tokens.is_empty() {
             HashSet::<usize>::new()
@@ -95,8 +95,14 @@ impl Mutator {
     }
 
     /// Fuzzes the token at index `idx` using the `seed` value and
-    /// updates the offset table and result value after. 
-    fn fuzz_token(&self, seed: u64, idx: usize, offsets: &mut BTreeMap::<usize, i64>, result: &mut String) {
+    /// updates the offset table and result value after.
+    fn fuzz_token(
+        &self,
+        seed: u64,
+        idx: usize,
+        offsets: &mut BTreeMap<usize, i64>,
+        result: &mut String,
+    ) {
         let AutomatonToken {
             from,
             to,
@@ -105,8 +111,7 @@ impl Mutator {
         if let Some(to_fuzz) = self.input.get(from..to) {
             let fuzzed = &automaton.traverse(String::from(to_fuzz), seed);
             result.replace_range(
-                Self::get_moved_index(offsets, from)
-                    ..Self::get_moved_index(offsets, to),
+                Self::get_moved_index(offsets, from)..Self::get_moved_index(offsets, to),
                 fuzzed,
             );
             Self::move_index(offsets, to, fuzzed.len() as i64 - to as i64);
@@ -132,7 +137,7 @@ impl Iterator for Mutator {
     type Item = String;
 
     /// Computes a new fuzz value.
-    /// 
+    ///
     /// Returns `None` if the input doesn't contain
     /// any tokens, e.g. an empty string.
     fn next(&mut self) -> Option<Self::Item> {
@@ -163,33 +168,50 @@ mod tests {
 
     #[test]
     fn mutators_require_valid_input() {
-        assert!(Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "(", Rule::value).is_none());
+        assert!(
+            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "(", Rule::value)
+                .is_none()
+        );
     }
 
     #[test]
     fn mutation_is_reproducible() {
-        let mut first = Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value).unwrap();
-        let mut sec = Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value).unwrap();
+        let mut first =
+            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value)
+                .unwrap();
+        let mut sec =
+            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value)
+                .unwrap();
         assert_eq!(first.next().unwrap(), sec.next().unwrap());
     }
 
     #[test]
     fn mutation_is_seedable() {
-        let mut first = Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "1", Rule::value).unwrap();
-        let mut sec = Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(2)), "1", Rule::value).unwrap();
+        let mut first =
+            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "1", Rule::value)
+                .unwrap();
+        let mut sec =
+            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(2)), "1", Rule::value)
+                .unwrap();
         assert_ne!(first.next().unwrap(), sec.next().unwrap());
     }
 
     #[test]
     fn mutation_different_inputs_produces_different_result() {
-        let mut first = Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value).unwrap();
-        let mut sec = Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "124", Rule::value).unwrap();
+        let mut first =
+            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value)
+                .unwrap();
+        let mut sec =
+            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "124", Rule::value)
+                .unwrap();
         assert_ne!(first.next().unwrap(), sec.next().unwrap());
     }
 
     #[test]
     fn mutation_produces_different_result_each_time() {
-        let mut first = Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value).unwrap();
+        let mut first =
+            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value)
+                .unwrap();
         assert_ne!(first.next().unwrap(), first.next().unwrap());
     }
 
@@ -199,8 +221,14 @@ mod tests {
             Mutator::get_moved_index(&BTreeMap::<usize, i64>::new(), 1234),
             1234
         );
-        assert_eq!(Mutator::get_moved_index(&BTreeMap::<usize, i64>::new(), 0), 0);
-        assert_eq!(Mutator::get_moved_index(&BTreeMap::<usize, i64>::new(), 1), 1);
+        assert_eq!(
+            Mutator::get_moved_index(&BTreeMap::<usize, i64>::new(), 0),
+            0
+        );
+        assert_eq!(
+            Mutator::get_moved_index(&BTreeMap::<usize, i64>::new(), 1),
+            1
+        );
     }
 
     #[test]
@@ -253,7 +281,9 @@ mod tests {
 
     #[test]
     fn automata_not_filtered_upon_max_quota_with_single_automaton() {
-        let mutator = Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(123)), "1234", Rule::value).unwrap();
+        let mutator =
+            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(123)), "1234", Rule::value)
+                .unwrap();
         assert_eq!(mutator.choose_for_mutation(0).len(), 1);
         assert_eq!(mutator.choose_for_mutation(1).len(), 1);
         assert_eq!(mutator.choose_for_mutation(2).len(), 1);
@@ -261,7 +291,12 @@ mod tests {
 
     #[test]
     fn automata_not_filtered_upon_max_quota_with_multiple_automata() {
-        let mutator = Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(123)), "[1,2,3]", Rule::value).unwrap();
+        let mutator = Mutator::new::<JsonLexer, Rule>(
+            Box::new(PRandomizer::new(123)),
+            "[1,2,3]",
+            Rule::value,
+        )
+        .unwrap();
         assert_eq!(mutator.choose_for_mutation(0).len(), 4);
     }
 }

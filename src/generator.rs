@@ -8,7 +8,7 @@ pub struct Generator<T: 'static + Eq> {
 
 impl<T: Eq> Generator<T> {
     pub fn new(automaton: &'static Automaton<T>, seeder: Box<dyn Randomizer>) -> Self {
-        Self {automaton, seeder}
+        Self { automaton, seeder }
     }
 }
 
@@ -23,8 +23,8 @@ impl<T: Eq + core::fmt::Debug> Iterator for Generator<T> {
 #[cfg(test)]
 mod tests {
     use super::Generator;
-    use crate::state_machine::json::number::NUMBER_AUTOMATON;
     use crate::randomness::PRandomizer;
+    use crate::state_machine::json::number::NUMBER_AUTOMATON;
 
     #[test]
     fn generation_is_reproducible() {
@@ -38,7 +38,7 @@ mod tests {
     #[test]
     fn generation_is_seedable() {
         let mut first = Generator::new(&NUMBER_AUTOMATON, Box::new(PRandomizer::new(1)));
-        let mut sec = Generator::new(&NUMBER_AUTOMATON,Box::new(PRandomizer::new(2)));
+        let mut sec = Generator::new(&NUMBER_AUTOMATON, Box::new(PRandomizer::new(2)));
         assert_ne!(first.next().unwrap(), sec.next().unwrap());
     }
 }

@@ -9,14 +9,13 @@ pub trait Randomizer {
     fn get(&mut self) -> u64;
 }
 
-
 impl PRandomizer {
     pub fn new(seed: u64) -> Self {
         Self {
             generator: Pcg64::seed_from_u64(seed),
         }
     }
-} 
+}
 
 impl Randomizer for PRandomizer {
     fn get(&mut self) -> u64 {

@@ -1,5 +1,5 @@
-use super::super::weights::*;
 use super::super::helper::*;
+use super::super::weights::*;
 use crate::state_machine::{Automaton, AutomatonNode};
 
 lazy_static! {
