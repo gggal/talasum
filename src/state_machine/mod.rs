@@ -6,9 +6,9 @@ pub mod weights;
 // through the automaton
 type Transformation<T> = fn(T) -> T; // TODO maybe rename to mutate
 
-type Transition<T> = Box<dyn Fn(u32) -> Option<&'static AutomatonNode<T>> + std::marker::Sync>;
+type Transition<T> = Box<dyn Fn(u64) -> Option<&'static AutomatonNode<T>> + std::marker::Sync>;
 
-type Generate<T> = fn(u32) -> T;
+type Generate<T> = fn(u64) -> T;
 
 #[allow(dead_code)]
 
@@ -39,20 +39,20 @@ impl<T: Eq + core::fmt::Debug> Automaton<T> {
         self.initial_node
     }
 
-    fn init_value(&self, seed: u32) -> T {
+    fn init_value(&self, seed: u64) -> T {
         (self.generator)(seed)
     }
 
-    pub fn generate(&self, seed: u32) -> T {
+    pub fn generate(&self, seed: u64) -> T {
         // let mut seed: Box<dyn RngCore> = self.seed();
 
         self.traverse(self.init_value(seed), seed)
     }
 
     // Traverses the graph and computes the end value
-    pub fn traverse(&self, input: T, seed1: u32) -> T {
+    pub fn traverse(&self, input: T, seed: u64) -> T {
         // !TODO rename to mutate ?
-        let mut seed = PRandomizer::new(seed1 as u64);
+        let mut seed = PRandomizer::new(seed);
         let mut value: T = input;
         let mut state: Option<&AutomatonNode<T>> = Some(self.init_state());
         let mut rand = seed.get();

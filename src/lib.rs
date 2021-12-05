@@ -34,18 +34,18 @@ pub mod json {
     use crate::tokenizer::json_lexer::{JsonLexer, Rule};
 
     pub mod number {
-        pub fn generator(seed: u32) -> super::super::Generator<String> {
+        pub fn generator(seed: u64) -> super::super::Generator<String> {
             super::super::Generator::<String>::new(&super::super::NUMBER_AUTOMATON, seed)
         }
     }
 
     pub mod boolean {
-        pub fn generator(seed: u32) -> super::super::Generator<String> {
+        pub fn generator(seed: u64) -> super::super::Generator<String> {
             super::super::Generator::<String>::new(&super::super::BOOL_AUTOMATON, seed)
         }
     }
 
-    pub fn mutator(input: &'static str, seed: u32) -> Option<super::Mutator> {
+    pub fn mutator(input: &'static str, seed: u64) -> Option<super::Mutator> {
         super::Mutator::new::<JsonLexer, Rule>(seed, input, Rule::value)
     }
 }

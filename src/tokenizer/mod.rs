@@ -22,8 +22,8 @@ pub trait LexerRule: RuleType {
 /// - its last position in the input text
 /// - its corresponing automaton
 pub struct AutomatonToken<'a> {
-    pub from: u32,
-    pub to: u32,
+    pub from: usize,
+    pub to: usize,
     pub automaton: &'a Automaton<String>,
 }
 
@@ -36,8 +36,8 @@ fn pest_pair_to_token<'a, T: 'a + LexerRule>(
     let end = pair.as_span().end();
 
     rule.pest_to_automaton().map(|rule| AutomatonToken {
-        from: start as u32,
-        to: end as u32,
+        from: start,
+        to: end,
         automaton: rule,
     })
 }

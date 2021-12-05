@@ -12,9 +12,9 @@ pub fn char_flip_case(ch: char) -> char {
     }
 }
 
-pub fn random_capitalization(seed: u32, to_transform: String) -> String {
+pub fn random_capitalization(seed: u64, to_transform: String) -> String {
     let mut transformed = String::new();
-    let mut randomizer = PRandomizer::new(seed as u64);
+    let mut randomizer = PRandomizer::new(seed);
     for ch in to_transform.chars() {
         let to_append: char = if randomizer.get() % 2 == 0 {
             ch
@@ -27,8 +27,8 @@ pub fn random_capitalization(seed: u32, to_transform: String) -> String {
 }
 
 // less > 2^32
-pub fn random_digit_string(seed: u32) -> String {
-    let mut randomizer = SkewedPRandomizer::new_limited(seed as u64, 0, 1_u32 << 20, vec![1, 1000]);
+pub fn random_digit_string(seed: u64) -> String {
+    let mut randomizer = SkewedPRandomizer::new_limited(seed, 0, 1_u32 << 20, vec![1, 1000]);
     randomizer.get().to_string()
 }
 

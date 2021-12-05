@@ -38,12 +38,12 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
         }
     }
 
-    fn choice_func(&self, seed: u32) -> Option<&'static AutomatonNode<T>> {
+    fn choice_func(&self, seed: u64) -> Option<&'static AutomatonNode<T>> {
         if let Some(last) = self.weights.last() {
             let (last_weight, last_val) = last;
             let mut choice = *last_val;
             for (weight, value) in &self.weights {
-                if *weight >= seed % last_weight {
+                if *weight >= seed as u32 % last_weight {
                     choice = *value;
                     break;
                 }
@@ -55,7 +55,7 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
     }
 
     pub fn choose(self) -> Transition<T> {
-        Box::new(move |seed: u32| self.choice_func(seed))
+        Box::new(move |seed: u64| self.choice_func(seed))
     }
 }
 
@@ -73,7 +73,7 @@ mod tests {
             .collect()
     }
 
-    fn choose_helper(input: Vec<WeightedTransition<String>>, seed: u32) -> Transformation<String> {
+    fn choose_helper(input: Vec<WeightedTransition<String>>, seed: u64) -> Transformation<String> {
         TransitionChoice::<String>::new(input, 100).choose()(seed)
             .unwrap()
             .transformation

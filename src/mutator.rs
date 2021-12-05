@@ -5,6 +5,15 @@ use crate::tokenizer::{AutomatonToken, LexerRule};
 use pest::Parser;
 use std::collections::{BTreeMap, HashSet};
 
+/// A mutation-based fuzzer.
+///
+/// It is a seedable iterator which produces new versions of its
+/// text input by understanding its structure and changing parts of it. The
+/// degree of these changes depends on the horizontal and vertical global coefficients.
+///
+/// It relies on a PRG internally because the fuzzing process should be traceable and reproducible at all times.
+/// If one needs true randomness, one needs to generate truly random seeds to pass to one's
+/// Mutator.
 pub struct Mutator {
     seeder: PRandomizer,
     tokens: Vec<AutomatonToken<'static>>,
@@ -12,75 +21,104 @@ pub struct Mutator {
 }
 
 impl Mutator {
-
+    /// Creates a Mutator instance based on the following input:
+    /// - `seed` - will be used for generating pseudo-random mutations to the input
+    /// - `input` - valid input as per the protocol's specification
+    /// - `rule` - name of the top rule of the corresponding PEG, usually R::value,
+    /// where R and P are protocol-specific types defined in [`crate::tokenizer`]
+    ///
+    /// Result will be [`std::option::Option::None`] if the input is invalid as per the underlying
+    /// protocol grammar, e.g. "{1}" is not a valid JSON input, hence cannot
+    /// be fuzzed.
     pub(crate) fn new<P: Parser<R>, R: 'static + LexerRule>(
-        seed: u32,
+        seed: u64,
         input: &'static str,
         rule: R,
     ) -> Option<Self> {
         tokenize_input::<P, R>(input, rule).map(|tokens| Self {
-            seeder: PRandomizer::new(seed as u64),
+            seeder: PRandomizer::new(seed),
             tokens,
             input,
         })
         // TODO ERROR log in case of invalid input
     }
 
-    fn get_moved_index(offset_table: &BTreeMap<u32, i32>, original: u32) -> i32 {
-        original as i32
-            + offset_table
+    /// Calculates the new index of the element at `original`
+    /// based on previous moves defined in `offset_table`.
+    /// `offset_table` maps original indices in a sequence, 0,1,2... , to offsets to
+    /// new indices after a series of changes to the sequence.
+    ///
+    /// For example, the pair 5 -> -2 means that the 5th element was, at some point,
+    /// moved to index 3.
+    fn get_moved_index(offset_table: &BTreeMap<usize, i64>, original: usize) -> usize {
+        offset_table
                 .range(0..original)
-                .fold(0, |acc, (_, offset)| acc as i32 + offset)
+                .fold(original, |acc, (_, offset)| (acc as i64 + offset) as usize)
     }
 
-    fn move_index(offset_table: &mut BTreeMap<u32, i32>, original: u32, offset: i32) {
+    /// Reflects an index move of the element at `original` in the `offset_table`.
+    /// `offset_table` maps original indices in a sequence, 0,1,2... , to offsets to
+    /// new indices after a series of changes to the sequence.
+    ///
+    /// For example, the pair 5 -> -2 means that the 5th element was, at some point,
+    /// moved to index 3.
+    fn move_index(offset_table: &mut BTreeMap<usize, i64>, original: usize, offset: i64) {
         offset_table
             .entry(original)
             .and_modify(|e| *e += offset)
             .or_insert(offset);
     }
 
-    fn choose_for_mutation(&self, seed: u32) -> HashSet<u32> {
+    /// Chooses a set of tokens to be fuzzed. The number of tokens to be
+    /// fuzzed is directly proportional to the horizontal fuzzing coefficient:
+    /// If the H coefficient is set to max, every single token in the input
+    /// will be fuzzed, effectively simulating the behavior of a [`crate::Generator`].
+    /// 
+    /// Outputs the indices of the tokens to be fuzzed. 
+    fn choose_for_mutation(&self, seed: u64) -> HashSet<usize> {
         if self.tokens.is_empty() {
-            HashSet::<u32>::new()
+            HashSet::<usize>::new()
         } else {
             let final_cnt =
                 CONFIG.get_horizontal_randomness_coef() / 100 * (self.tokens.len() as u32);
-            let mut curr_idx = seed % self.tokens.len() as u32;
+            let mut curr_idx = seed as usize % self.tokens.len();
 
-            let mut chosen = HashSet::<u32>::new();
+            let mut chosen = HashSet::<usize>::new();
             for _ in 0..final_cnt {
                 chosen.insert(curr_idx);
 
                 // + 1 in order to avoid cycles
-                curr_idx = (curr_idx + 1) % self.tokens.len() as u32;
+                curr_idx = (curr_idx + 1) % self.tokens.len();
             }
             chosen
         }
     }
 
-    fn fuzz_token(&self, seed: u32, idx: u32, offsets: &mut BTreeMap::<u32, i32>, result: &mut String) {
+    /// Fuzzes the token at index `idx` using the `seed` value and
+    /// updates the offset table and result value after. 
+    fn fuzz_token(&self, seed: u64, idx: usize, offsets: &mut BTreeMap::<usize, i64>, result: &mut String) {
         let AutomatonToken {
             from,
             to,
             automaton,
-        } = self.tokens[idx as usize];
-        if let Some(to_fuzz) = self.input.get(from as usize..to as usize) {
+        } = self.tokens[idx];
+        if let Some(to_fuzz) = self.input.get(from..to) {
             let fuzzed = &automaton.traverse(String::from(to_fuzz), seed);
             result.replace_range(
-                Self::get_moved_index(&offsets, from) as usize
-                    ..Self::get_moved_index(&offsets, to) as usize,
+                Self::get_moved_index(&offsets, from)
+                    ..Self::get_moved_index(&offsets, to),
                 fuzzed,
             );
-            Self::move_index(offsets, to, fuzzed.len() as i32 - to as i32);
+            Self::move_index(offsets, to, fuzzed.len() as i64 - to as i64);
         } else {
             panic!("Unreachable!");
         }
     }
 
+    /// Fuzzes the whole input
     fn fuzz(&mut self) -> String {
         let next_seed = self.seeder.get();
-        let mut offsets = BTreeMap::<u32, i32>::new();
+        let mut offsets = BTreeMap::<usize, i64>::new();
         let mut result = String::from(self.input);
 
         for idx in self.choose_for_mutation(next_seed) {
@@ -93,6 +131,10 @@ impl Mutator {
 impl Iterator for Mutator {
     type Item = String;
 
+    /// Computes a new fuzz value.
+    /// 
+    /// Returns `None` if the input doesn't contain
+    /// any tokens, e.g. an empty string.
     fn next(&mut self) -> Option<Self::Item> {
         if self.tokens.is_empty() {
             None
@@ -153,37 +195,37 @@ mod tests {
     #[test]
     fn get_moved_index_with_no_offset_table() {
         assert_eq!(
-            Mutator::get_moved_index(&BTreeMap::<u32, i32>::new(), 1234),
+            Mutator::get_moved_index(&BTreeMap::<usize, i64>::new(), 1234),
             1234
         );
-        assert_eq!(Mutator::get_moved_index(&BTreeMap::<u32, i32>::new(), 0), 0);
-        assert_eq!(Mutator::get_moved_index(&BTreeMap::<u32, i32>::new(), 1), 1);
+        assert_eq!(Mutator::get_moved_index(&BTreeMap::<usize, i64>::new(), 0), 0);
+        assert_eq!(Mutator::get_moved_index(&BTreeMap::<usize, i64>::new(), 1), 1);
     }
 
     #[test]
     fn get_moved_index_with_positive_offsets() {
-        let mut offsets = BTreeMap::<u32, i32>::new();
+        let mut offsets = BTreeMap::<usize, i64>::new();
         offsets.insert(4, 5);
         assert_eq!(Mutator::get_moved_index(&offsets, 5), 10);
     }
 
     #[test]
     fn moved_positions_are_not_inclusive() {
-        let mut offsets = BTreeMap::<u32, i32>::new();
+        let mut offsets = BTreeMap::<usize, i64>::new();
         offsets.insert(5, 5);
         assert_ne!(Mutator::get_moved_index(&offsets, 5), 10);
     }
 
     #[test]
     fn get_moved_index_with_negative_offsets() {
-        let mut offsets = BTreeMap::<u32, i32>::new();
+        let mut offsets = BTreeMap::<usize, i64>::new();
         offsets.insert(4, -2);
         assert_eq!(Mutator::get_moved_index(&offsets, 5), 3);
     }
 
     #[test]
     fn get_moved_index_after_multiple_moves() {
-        let mut offsets = BTreeMap::<u32, i32>::new();
+        let mut offsets = BTreeMap::<usize, i64>::new();
         offsets.insert(4, 5);
         offsets.insert(5, 7);
         offsets.insert(7, -2);
@@ -192,7 +234,7 @@ mod tests {
 
     #[test]
     fn move_index_when_offset_table_is_empty() {
-        let mut offsets = BTreeMap::<u32, i32>::new();
+        let mut offsets = BTreeMap::<usize, i64>::new();
         Mutator::move_index(&mut offsets, 2, 3);
         assert!(offsets.contains_key(&2));
         assert_eq!(offsets.get(&2).unwrap(), &3);
@@ -200,7 +242,7 @@ mod tests {
 
     #[test]
     fn move_same_position_repeatedly() {
-        let mut offsets = BTreeMap::<u32, i32>::new();
+        let mut offsets = BTreeMap::<usize, i64>::new();
         Mutator::move_index(&mut offsets, 2, 3);
         Mutator::move_index(&mut offsets, 2, 5);
         Mutator::move_index(&mut offsets, 2, -2);

@@ -1,5 +1,5 @@
 use rand::{Rng, SeedableRng};
-use rand_pcg::Pcg32;
+use rand_pcg::Pcg64;
 
 // Magi Pseudo-random number generator
 
@@ -8,36 +8,36 @@ use rand_pcg::Pcg32;
 // create the internal generator object
 
 pub struct PRandomizer {
-    generator: Pcg32,
-    lower_limit: u32,
-    upper_limit: u32,
+    generator: Pcg64,
+    lower_limit: u64,
+    upper_limit: u64,
 }
 
 impl PRandomizer {
     pub fn new(seed: u64) -> Self {
         Self {
-            generator: Pcg32::seed_from_u64(seed),
-            lower_limit: 0_u32,
-            upper_limit: u32::MAX,
+            generator: Pcg64::seed_from_u64(seed),
+            lower_limit: 0_u64,
+            upper_limit: u64::MAX,
         }
     }
 
     #[allow(dead_code)]
-    pub fn new_limited(seed: u64, from: u32, to: u32) -> Self {
+    pub fn new_limited(seed: u64, from: u64, to: u64) -> Self {
         Self {
-            generator: Pcg32::seed_from_u64(seed),
+            generator: Pcg64::seed_from_u64(seed),
             lower_limit: from,
             upper_limit: to,
         }
     }
 
-    pub fn get(&mut self) -> u32 {
+    pub fn get(&mut self) -> u64 {
         self.generator.gen_range(self.lower_limit..self.upper_limit)
     }
 }
 
 impl Iterator for PRandomizer {
-    type Item = u32;
+    type Item = u64;
 
     fn next(&mut self) -> Option<Self::Item> {
         Some(self.get())
@@ -70,8 +70,8 @@ mod tests {
 
     #[test]
     fn prandom_generator_generates_numbers_within_limits() {
-        const MIN_LIMIT: u32 = 10_u32;
-        const MAX_LIMIT: u32 = 20_u32;
+        const MIN_LIMIT: u64 = 10_u64;
+        const MAX_LIMIT: u64 = 20_u64;
         let mut gen: PRandomizer = PRandomizer::new_limited(123, MIN_LIMIT, MAX_LIMIT);
         for _ in 0..11 {
             let generated = gen.get();
