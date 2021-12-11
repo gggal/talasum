@@ -46,4 +46,10 @@ mod tests {
         let mut gen: PRandomizer = PRandomizer::new(0);
         assert_ne!(gen.get(), 0);
     }
+
+    #[test]
+    fn generator_is_iterable() {
+        let mut gen: PRandomizer = PRandomizer::new(0);
+        assert_ne!(gen.get(), gen.get());
+    }
 }

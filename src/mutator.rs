@@ -156,6 +156,11 @@ mod tests {
     use crate::tokenizer::json_lexer::{JsonLexer, Rule};
     use std::collections::BTreeMap;
 
+    fn valid_mutator() -> Mutator {
+        Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(123)), "[1,2,3]", Rule::value)
+            .unwrap()
+    }
+
     #[test]
     fn empty_input_cannot_be_mutated() {
         assert_eq!(
@@ -291,12 +296,17 @@ mod tests {
 
     #[test]
     fn automata_not_filtered_upon_max_quota_with_multiple_automata() {
-        let mutator = Mutator::new::<JsonLexer, Rule>(
-            Box::new(PRandomizer::new(123)),
-            "[1,2,3]",
-            Rule::value,
-        )
-        .unwrap();
-        assert_eq!(mutator.choose_for_mutation(0).len(), 4);
+        assert_eq!(valid_mutator().choose_for_mutation(0).len(), 4);
+    }
+
+    #[test]
+    #[should_panic]
+    fn panic_when_fuzzing_token_with_invalid_idx() {
+        valid_mutator().fuzz_token(
+            123,
+            10000,
+            &mut BTreeMap::<usize, i64>::new(),
+            &mut String::new(),
+        );
     }
 }
