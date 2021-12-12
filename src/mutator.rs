@@ -3,13 +3,13 @@ use crate::randomness::Randomizer;
 use crate::tokenizer::tokenize_input;
 use crate::tokenizer::{AutomatonToken, LexerRule};
 use pest::Parser;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 
 /// A mutation-based fuzzer.
 ///
 /// It is a seedable iterator which produces new versions of its
 /// text input by understanding its structure and changing parts of it. The
-/// degree of these changes depends on the horizontal and vertical global coefficients.
+/// degree of these changes depends on the horizontal and vertical fuzzing global coefficients.
 ///
 /// It relies on a PRG internally because the fuzzing process should be traceable and reproducible at all times.
 /// If one needs true randomness, one needs to generate truly random seeds to pass to one's
@@ -63,10 +63,12 @@ impl Mutator {
     /// For example, the pair 5 -> -2 means that the 5th element was, at some point,
     /// moved to index 3.
     fn move_index(offset_table: &mut BTreeMap<usize, i64>, original: usize, offset: i64) {
-        offset_table
-            .entry(original)
-            .and_modify(|e| *e += offset)
-            .or_insert(offset);
+        if offset != 0 {
+            offset_table
+                .entry(original)
+                .and_modify(|e| *e += offset)
+                .or_insert(offset);
+        }
     }
 
     /// Chooses a set of tokens to be fuzzed. The number of tokens to be
@@ -74,16 +76,16 @@ impl Mutator {
     /// If the H coefficient is set to max, every single token in the input
     /// will be fuzzed, effectively simulating the behavior of a [`crate::Generator`].
     ///
-    /// Outputs the indices of the tokens to be fuzzed.
-    fn choose_for_mutation(&self, seed: u64) -> HashSet<usize> {
+    /// Outputs the indices of the tokens to be fuzzed in ascending order.
+    fn choose_for_mutation(&self, seed: u64) -> BTreeSet<usize> {
         if self.tokens.is_empty() {
-            HashSet::<usize>::new()
+            BTreeSet::<usize>::new()
         } else {
             let final_cnt =
                 CONFIG.get_horizontal_randomness_coef() / 100 * (self.tokens.len() as u32);
             let mut curr_idx = seed as usize % self.tokens.len();
 
-            let mut chosen = HashSet::<usize>::new();
+            let mut chosen = BTreeSet::<usize>::new();
             for _ in 0..final_cnt {
                 chosen.insert(curr_idx);
 
@@ -108,13 +110,18 @@ impl Mutator {
             to,
             automaton,
         } = self.tokens[idx];
-        if let Some(to_fuzz) = self.input.get(from..to) {
+
+        let new_from = Self::get_moved_index(offsets, from);
+        let new_to = Self::get_moved_index(offsets, to);
+
+        if let Some(to_fuzz) = result.get(new_from..new_to) {
             let fuzzed = &automaton.traverse(String::from(to_fuzz), seed);
-            result.replace_range(
-                Self::get_moved_index(offsets, from)..Self::get_moved_index(offsets, to),
-                fuzzed,
+            result.replace_range(new_from..new_to, fuzzed);
+            Self::move_index(
+                offsets,
+                to,
+                fuzzed.len() as i64 - (new_to - new_from) as i64,
             );
-            Self::move_index(offsets, to, fuzzed.len() as i64 - to as i64);
         } else {
             panic!("Unreachable!");
         }
@@ -292,6 +299,18 @@ mod tests {
         assert_eq!(mutator.choose_for_mutation(0).len(), 1);
         assert_eq!(mutator.choose_for_mutation(1).len(), 1);
         assert_eq!(mutator.choose_for_mutation(2).len(), 1);
+    }
+
+    #[test]
+    fn automata_are_chosen_in_asc_order() {
+        let mutator =
+            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(123)), "1234", Rule::value)
+                .unwrap();
+        let chosen = mutator.choose_for_mutation(100);
+        assert!(chosen.len() > 0);
+        for el_idx in 1..chosen.len() {
+            assert!(chosen.get(&el_idx).unwrap() > chosen.get(&(el_idx - 1)).unwrap());
+        }
     }
 
     #[test]
