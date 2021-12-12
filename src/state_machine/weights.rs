@@ -5,6 +5,7 @@ use itertools::Itertools;
 pub fn choose(vec: Vec<WeightedTransition<String>>) -> Transition<String> {
     TransitionChoice::<String>::new(vec, CONFIG.get_vertical_randomness_coef()).choose()
 }
+
 pub struct TransitionChoice<T: 'static + Clone + Sync> {
     weights: Vec<WeightedTransition<T>>,
 }
@@ -13,11 +14,8 @@ pub struct TransitionChoice<T: 'static + Clone + Sync> {
 type WeightedTransition<T> = (u32, Option<&'static AutomatonNode<T>>);
 
 impl<T: 'static + Clone + Sync> TransitionChoice<T> {
-    // const MAGIC_COEF: u32 = 100; // from 0 to 100
 
-    // Magic == 0 is invalid and will break tests!!!
-    pub fn new(mut weights: Vec<WeightedTransition<T>>, magic: u32) -> Self {
-        // sort the weights in ascending order, group into same numbers, multiply with 10*x, loop over and recalc
+    pub fn new(mut weights: Vec<WeightedTransition<T>>, v_coef: u32) -> Self {
         weights.sort_by(|(w1, _), (w2, _)| w1.partial_cmp(w2).unwrap());
 
         let mut prev_weight = 0;
@@ -25,7 +23,7 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
         let mut top_limit = 0;
 
         for (weight, group) in &weights.into_iter().group_by(|(w, _)| *w) {
-            let new_val = weight * magic + prev_weight * (100 - magic);
+            let new_val = weight * v_coef + prev_weight * (100 - v_coef);
             prev_weight = weight;
 
             for (_, tr) in group {
@@ -65,8 +63,8 @@ mod tests {
 
     use super::*;
 
-    fn recalculate_helper(weights: Vec<u32>, magic: u32) -> Vec<u32> {
-        TransitionChoice::<String>::new(weights.iter().map(|w| (*w, None)).collect_vec(), magic)
+    fn recalculate_helper(weights: Vec<u32>, v_coef: u32) -> Vec<u32> {
+        TransitionChoice::<String>::new(weights.iter().map(|w| (*w, None)).collect_vec(), v_coef)
             .weights
             .iter()
             .map(|(w, _)| *w)

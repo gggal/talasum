@@ -20,7 +20,7 @@ pub trait LexerRule: RuleType {
 /// Representation of a single token - characterized by:
 /// - its first position in the input text
 /// - its last position in the input text
-/// - its corresponing automaton
+/// - its corresponding automaton
 pub struct AutomatonToken<'a> {
     pub from: usize,
     pub to: usize,
