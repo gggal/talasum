@@ -71,18 +71,13 @@ impl Mutator {
         }
     }
 
-    /// Chooses a set of tokens to be fuzzed. The number of tokens to be
-    /// fuzzed is directly proportional to the horizontal fuzzing coefficient:
-    /// If the H coefficient is set to max, every single token in the input
-    /// will be fuzzed, effectively simulating the behavior of a [`crate::Generator`].
-    ///
+    /// Chooses a set of tokens to be fuzzed.
     /// Outputs the indices of the tokens to be fuzzed in ascending order.
     fn choose_for_mutation(&self, seed: u64) -> BTreeSet<usize> {
         if self.tokens.is_empty() {
             BTreeSet::<usize>::new()
         } else {
-            let final_cnt =
-                CONFIG.get_horizontal_randomness_coef() / 100 * (self.tokens.len() as u32);
+            let final_cnt = self.get_tokens_count();
             let mut curr_idx = seed as usize % self.tokens.len();
 
             let mut chosen = BTreeSet::<usize>::new();
@@ -94,6 +89,15 @@ impl Mutator {
             }
             chosen
         }
+    }
+
+    /// Computes the number of tokens to be fuzzed based on config.
+    /// It is directly proportional to the horizontal fuzzing coefficient:
+    /// If the H coefficient is set to max, every single token in the input
+    /// will be fuzzed, effectively getting the behavior of a [`crate::Generator`].
+    fn get_tokens_count(&self) -> usize {
+        ((CONFIG.get_horizontal_randomness_coef() as f32 / 100 as f32) * (self.tokens.len() as f32))
+            .ceil() as usize
     }
 
     /// Fuzzes the token at index `idx` using the `seed` value and
@@ -328,4 +332,10 @@ mod tests {
             &mut String::new(),
         );
     }
+
+    // #[test]
+    // fn there_is_always_at_least_one_token_to_be_fuzzed() {
+    //     // TODO mock get h-coef to 1 to test this
+    //     valid_mutator().get_tokens_count();
+    // }
 }
