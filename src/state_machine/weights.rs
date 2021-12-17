@@ -2,18 +2,43 @@ use super::{AutomatonNode, Transition};
 use crate::configuration::{Configurable, CONFIG};
 use itertools::Itertools;
 
+/// The entrypoint to this module.
+/// Based on a given set or transitions, recalculates their weights
+/// and returns a function that accepts a seed and returns the next state
 pub fn choose(vec: Vec<WeightedTransition<String>>) -> Transition<String> {
     TransitionChoice::<String>::new(vec, CONFIG.get_vertical_randomness_coef()).choose()
 }
 
+/// Represents the transition function.
+/// It is a function of the seed, weights and v_coef:
+/// 
+/// - the seed is expected to vary for each run in order to guarantee diverse
+/// output values
+/// - the weights are the predefined proportions at which each transition is 
+/// likely to happen
+/// - v_coef is a configurable value which determines the degree
+/// of the extremeness of the output
+/// 
+/// The output of the function is another automaton state (or
+/// no state if the current state is final).
 pub struct TransitionChoice<T: 'static + Clone + Sync> {
     weights: Vec<WeightedTransition<T>>,
 }
 
-// move this into the impl when stable: https://github.com/rust-lang/rust/issues/8995
+/// Represents an edge in a weighted automaton. i.e. the potential transition 
+/// from one state of the automaton onto another based on some proportional 
+/// probability. 
+/// The transition can lead nowhere in which case the current state is final. 
+/// The transition can also redirect the current state to itself but this may 
+/// lead to cycles and must be avoided.
+/// The weight is represented by a single unsigned number and only makes sense
+/// in the context of the weights of the rest of the transitions from the
+/// current state to any other state. In that context each weight m is m/n'th
+/// where n is the sum of all weights for transitions from the current state.
 type WeightedTransition<T> = (u32, Option<&'static AutomatonNode<T>>);
 
 impl<T: 'static + Clone + Sync> TransitionChoice<T> {
+    // TODO move WeightedTransition into the impl when stable: https://github.com/rust-lang/rust/issues/8995
 
     pub fn new(mut weights: Vec<WeightedTransition<T>>, v_coef: u32) -> Self {
         weights.sort_by(|(w1, _), (w2, _)| w1.partial_cmp(w2).unwrap());
@@ -36,6 +61,8 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
         }
     }
 
+    /// Chooses the next state based on the seed and the recalculated
+    /// weights of the reachable states.
     fn choice_func(&self, seed: u64) -> Option<&'static AutomatonNode<T>> {
         if let Some(last) = self.weights.last() {
             let (last_weight, last_val) = last;
@@ -52,6 +79,7 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
         }
     }
 
+    /// Returns an instance of the choice function
     pub fn choose(self) -> Transition<T> {
         Box::new(move |seed: u64| self.choice_func(seed))
     }

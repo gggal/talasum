@@ -1,15 +1,21 @@
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64;
 
+/// Thin wrapper around a pseudo-random generator
 pub struct PRandomizer {
     generator: Pcg64,
 }
 
+/// To be implemented for random number generators
 pub trait Randomizer {
+
+    /// Returns the next randomly generated number
     fn get(&mut self) -> u64;
 }
 
 impl PRandomizer {
+
+    /// Returns a PRG instance based on a `seed`
     pub fn new(seed: u64) -> Self {
         Self {
             generator: Pcg64::seed_from_u64(seed),
@@ -18,6 +24,8 @@ impl PRandomizer {
 }
 
 impl Randomizer for PRandomizer {
+
+    /// Returns the next pseudo-randomly generated number
     fn get(&mut self) -> u64 {
         self.generator.gen_range(u64::MIN..u64::MAX)
     }

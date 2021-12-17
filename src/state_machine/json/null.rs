@@ -52,7 +52,6 @@ lazy_static! {
         transformation: |text| to_capitalized(text)
     };
 
-    #[allow(dead_code)]
     pub static ref NULL_AUTOMATON: Automaton<String> = Automaton::<String> {
         initial_node: &START_NULL,
         generator: |_| String::from("null"),

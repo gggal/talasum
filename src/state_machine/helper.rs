@@ -1,5 +1,6 @@
 use super::{PRandomizer, Randomizer};
 
+
 pub fn char_flip_case(ch: char) -> char {
     if ch.is_uppercase() {
         ch.to_ascii_lowercase()
@@ -8,6 +9,7 @@ pub fn char_flip_case(ch: char) -> char {
     }
 }
 
+ 
 pub fn random_capitalization(seed: u64, to_transform: String) -> String {
     let mut transformed = String::new();
     let mut randomizer = PRandomizer::new(seed);
