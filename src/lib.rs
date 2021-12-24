@@ -5,7 +5,7 @@
 //! pair, e.g. the number type of the JSON protocol.
 //! For protocol-based fuzzing one needs to provide a valid JSON/YAML document.
 //!
-//! Magi's fuzzing algorithm understands the underlying protocols and can 
+//! Magi's fuzzing algorithm understands the underlying protocols and can
 //! effectively process nested input.
 //!
 //! Magi is designed to be used primarily for security testing, hence

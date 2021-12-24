@@ -11,25 +11,25 @@ pub fn choose(vec: Vec<WeightedTransition<String>>) -> Transition<String> {
 
 /// Represents the transition function.
 /// It is a function of the seed, weights and v_coef:
-/// 
+///
 /// - the seed is expected to vary for each run in order to guarantee diverse
 /// output values
-/// - the weights are the predefined proportions at which each transition is 
+/// - the weights are the predefined proportions at which each transition is
 /// likely to happen
 /// - v_coef is a configurable value which determines the degree
 /// of the extremeness of the output
-/// 
+///
 /// The output of the function is another automaton state (or
 /// no state if the current state is final).
 pub struct TransitionChoice<T: 'static + Clone + Sync> {
     weights: Vec<WeightedTransition<T>>,
 }
 
-/// Represents an edge in a weighted automaton. i.e. the potential transition 
-/// from one state of the automaton onto another based on some proportional 
-/// probability. 
-/// The transition can lead nowhere in which case the current state is final. 
-/// The transition can also redirect the current state to itself but this may 
+/// Represents an edge in a weighted automaton. i.e. the potential transition
+/// from one state of the automaton onto another based on some proportional
+/// probability.
+/// The transition can lead nowhere in which case the current state is final.
+/// The transition can also redirect the current state to itself but this may
 /// lead to cycles and must be avoided.
 /// The weight is represented by a single unsigned number and only makes sense
 /// in the context of the weights of the rest of the transitions from the

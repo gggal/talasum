@@ -11,7 +11,6 @@ lazy_static! {
         ]),
         transformation: super::IDENTITY,
     };
-
     static ref START_NULL: AutomatonNode<String> = AutomatonNode::<String> {
         transition: choose(vec![
             (4, Some(&CASED_NULL)),
@@ -21,42 +20,34 @@ lazy_static! {
         ]),
         transformation: super::IDENTITY,
     };
-
     static ref NIL_NULL: AutomatonNode<String> = AutomatonNode::<String> {
         transition: Box::new(|_| Some(&CASED_NULL)),
         transformation: |_| String::from("nil"),
     };
-
     static ref NONE_NULL: AutomatonNode<String> = AutomatonNode::<String> {
         transition: Box::new(|_| Some(&CASED_NULL)),
         transformation: |_| String::from("none"),
     };
-
     static ref ZERO_NULL: AutomatonNode<String> = AutomatonNode::<String> {
         transition: Box::new(|_| None),
         transformation: |_| String::from("0"),
     };
-
     static ref UPPER_CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
         transition: Box::new(|_| None),
         transformation: |text| to_upper_case(text)
     };
-
     static ref RANDOM_CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
         transition: Box::new(|_| None),
         transformation: |text| to_random_case(text)
     };
-
     static ref CAPITALIZED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
         transition: Box::new(|_| None),
         transformation: |text| to_capitalized(text)
     };
-
     pub static ref NULL_AUTOMATON: Automaton<String> = Automaton::<String> {
         initial_node: &START_NULL,
         generator: |_| String::from("null"),
     };
-
 }
 
 #[cfg(test)]

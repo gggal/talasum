@@ -9,7 +9,7 @@ type Transformation<T> = fn(T) -> T;
 
 /// Transition from one state in the automaton to another one adjacent to it.
 /// If the value is None, then the state is final and there isn't a state
-/// to transition to. 
+/// to transition to.
 type Transition<T> = Box<dyn Fn(u64) -> Option<&'static AutomatonNode<T>> + std::marker::Sync>;
 
 /// In case of generation-based fuzzing an initial value is generated before
@@ -36,9 +36,7 @@ pub struct Automaton<T: 'static + Eq> {
     generator: Generate<T>,
 }
 
-
 impl<T: Eq + core::fmt::Debug> Automaton<T> {
-
     /// Returns the start state for the automaton
     fn init_state(&self) -> &AutomatonNode<T> {
         self.initial_node

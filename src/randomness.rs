@@ -8,13 +8,11 @@ pub struct PRandomizer {
 
 /// To be implemented for random number generators
 pub trait Randomizer {
-
     /// Returns the next randomly generated number
     fn get(&mut self) -> u64;
 }
 
 impl PRandomizer {
-
     /// Returns a PRG instance based on a `seed`
     pub fn new(seed: u64) -> Self {
         Self {
@@ -24,7 +22,6 @@ impl PRandomizer {
 }
 
 impl Randomizer for PRandomizer {
-
     /// Returns the next pseudo-randomly generated number
     fn get(&mut self) -> u64 {
         self.generator.gen_range(u64::MIN..u64::MAX)
