@@ -64,6 +64,9 @@ pub trait Configurable {
     }
 }
 
+const CONFIG_FILE_NAME: &str = "Config.toml";
+const ENV_VARS_PREFIX: &str = "magi";
+
 /// An entrypoint to the global configuration -
 /// lll interaction with the crate configuration should
 /// happen through this struct
@@ -76,10 +79,10 @@ impl Config {
     fn new() -> Self {
         let mut fields = config::Config::default();
         fields
-            .merge(config::File::with_name(Self::config_file_name()))
+            .merge(config::File::with_name(CONFIG_FILE_NAME))
             .expect("Coudln't load config file");
         fields
-            .merge(config::Environment::with_prefix(Self::get_env_vars_prefix()))
+            .merge(config::Environment::with_prefix(ENV_VARS_PREFIX))
             .expect("Couldn't load config from env variables");
 
         let inner = fields
@@ -89,15 +92,6 @@ impl Config {
         Config {
             inner: RwLock::new(inner),
         }
-    }
-
-    fn config_file_name() -> &'static str {
-        println!("debug");
-        "Config.toml"
-    }
-
-    fn get_env_vars_prefix() -> &'static str {
-        "magi"
     }
 }
 
@@ -159,30 +153,10 @@ mod tests {
     // use std::env;
 
     #[test]
-    fn env_variables_as_config_values() {
-        // default values are acquired from local file
+    fn default_configs_are_acquired_from_file() {
         let config = Config::new();
         assert_eq!(config.get_horizontal_randomness_coef(), 100);
         assert_eq!(config.get_vertical_randomness_coef(), 100);
-
-        // TODO isolate configuration tests from the rest as the
-        // following are causing test failures in other modules
-
-        // // env vars override default config values
-        // env::set_var("MAGI_HORIZONTAL_RANDOMNESS_COEF", "51");
-        // env::set_var("MAGI_VERTICAL_RANDOMNESS_COEF", "49");
-
-        // let config1 = Config::new();
-        // assert_eq!(config1.get_horizontal_randomness_coef(), 51);
-        // assert_eq!(config1.get_vertical_randomness_coef(), 49);
-
-        // // lowercase env vars override default config values
-        // env::set_var("magi_horizontal_randomness_coef", "52");
-        // env::set_var("magi_vertical_randomness_coef", "48");
-
-        // let config = Config::new();
-        // assert_eq!(config.get_horizontal_randomness_coef(), 52);
-        // assert_eq!(config.get_vertical_randomness_coef(), 48);
     }
 
     #[test]
