@@ -57,11 +57,6 @@ pub trait Configurable {
 
     //. Saved for future use for updating configuration at runtime.
     fn set_vertical_randomness_coef(&mut self, value: u32);
-
-    /// Checks whether the coefficients follow the appropriate format
-    fn is_valid_value(value: u32) -> bool {
-        value > 0 && value <= 100
-    }
 }
 
 const CONFIG_FILE_NAME: &str = "Config.toml";
@@ -76,7 +71,7 @@ pub struct Config {
 
 #[automock]
 impl Config {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let mut fields = config::Config::default();
         fields
             .merge(config::File::with_name(CONFIG_FILE_NAME))
@@ -92,6 +87,11 @@ impl Config {
         Config {
             inner: RwLock::new(inner),
         }
+    }
+
+    /// Checks whether the coefficients follow the appropriate format
+    fn is_valid_value(value: u32) -> bool {
+        value > 0 && value <= 100
     }
 }
 
@@ -143,14 +143,9 @@ impl Configurable for Config {
     }
 }
 
-lazy_static! {
-    pub static ref CONFIG: Config = Config::new();
-}
-
 #[cfg(test)]
 mod tests {
     use super::{Config, Configurable};
-    // use std::env;
 
     #[test]
     fn default_configs_are_acquired_from_file() {

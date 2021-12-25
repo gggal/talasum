@@ -1,6 +1,10 @@
 use super::{AutomatonNode, Transition};
-use crate::configuration::{Configurable, CONFIG};
+use crate::configuration::{Config, Configurable};
 use itertools::Itertools;
+
+lazy_static! {
+    pub static ref CONFIG: Config = Config::new();
+}
 
 /// The entrypoint to this module.
 /// Based on a given set or transitions, recalculates their weights

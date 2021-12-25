@@ -42,6 +42,7 @@ use crate::mutator::Mutator;
 
 /// This module contains all JSON fuzzers
 pub mod json {
+    use crate::configuration::Config;
     use crate::randomness::PRandomizer;
     use crate::tokenizer::json_lexer::{JsonLexer, Rule};
 
@@ -90,6 +91,11 @@ pub mod json {
     ///
     /// ```
     pub fn mutate(input: &'static str, seed: u64) -> Option<super::Mutator> {
-        super::Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(seed)), input, Rule::value)
+        super::Mutator::new::<JsonLexer, Rule>(
+            Box::new(PRandomizer::new(seed)),
+            input,
+            Rule::value,
+            Box::new(Config::new()),
+        )
     }
 }

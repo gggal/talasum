@@ -1,4 +1,4 @@
-use crate::configuration::{Configurable, CONFIG};
+use crate::configuration::Configurable;
 use crate::randomness::Randomizer;
 use crate::tokenizer::tokenize_input;
 use crate::tokenizer::{AutomatonToken, LexerRule};
@@ -18,6 +18,7 @@ pub struct Mutator {
     seeder: Box<dyn Randomizer>,
     tokens: Vec<AutomatonToken<'static>>,
     input: &'static str,
+    config: Box<dyn Configurable>,
 }
 
 impl Mutator {
@@ -34,11 +35,13 @@ impl Mutator {
         seeder: Box<dyn Randomizer>,
         input: &'static str,
         rule: R,
+        config: Box<dyn Configurable>,
     ) -> Option<Self> {
         tokenize_input::<P, R>(input, rule).map(|tokens| Self {
             seeder,
             tokens,
             input,
+            config,
         })
         // TODO ERROR log in case of invalid input
     }
@@ -96,7 +99,8 @@ impl Mutator {
     /// If the H coefficient is set to max, every single token in the input
     /// will be fuzzed, effectively getting the behavior of a [`crate::Generator`].
     fn get_tokens_count(&self) -> usize {
-        ((CONFIG.get_horizontal_randomness_coef() as f32 / 100 as f32) * (self.tokens.len() as f32))
+        ((self.config.get_horizontal_randomness_coef() as f32 / 100_f32)
+            * (self.tokens.len() as f32))
             .ceil() as usize
     }
 
@@ -163,71 +167,75 @@ impl Iterator for Mutator {
 #[cfg(test)]
 mod tests {
     use super::Mutator;
+    use crate::configuration::{Config, Configurable, MockConfigurable};
     use crate::randomness::PRandomizer;
     use crate::tokenizer::json_lexer::{JsonLexer, Rule};
     use std::collections::BTreeMap;
 
-    fn valid_mutator() -> Mutator {
-        Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(123)), "[1,2,3]", Rule::value)
-            .unwrap()
+    fn get_mutator_helper(seed: u64, input: &'static str) -> Mutator {
+        Mutator::new::<JsonLexer, Rule>(
+            Box::new(PRandomizer::new(seed)),
+            input,
+            Rule::value,
+            Box::new(Config::new()),
+        )
+        .unwrap()
+    }
+
+    fn get_mocked_mutator_helper(
+        seed: u64,
+        input: &'static str,
+        config: Box<dyn Configurable>,
+    ) -> Mutator {
+        Mutator::new::<JsonLexer, Rule>(
+            Box::new(PRandomizer::new(seed)),
+            input,
+            Rule::value,
+            config,
+        )
+        .unwrap()
     }
 
     #[test]
     fn empty_input_cannot_be_mutated() {
-        assert_eq!(
-            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "", Rule::value)
-                .unwrap()
-                .next(),
-            None
-        );
+        assert_eq!(get_mutator_helper(1, "").next(), None);
     }
 
     #[test]
     fn mutators_require_valid_input() {
-        assert!(
-            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "(", Rule::value)
-                .is_none()
-        );
+        assert!(Mutator::new::<JsonLexer, Rule>(
+            Box::new(PRandomizer::new(1)),
+            "(",
+            Rule::value,
+            Box::new(Config::new())
+        )
+        .is_none());
     }
 
     #[test]
     fn mutation_is_reproducible() {
-        let mut first =
-            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value)
-                .unwrap();
-        let mut sec =
-            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value)
-                .unwrap();
+        let mut first = get_mutator_helper(1, "123");
+        let mut sec = get_mutator_helper(1, "123");
         assert_eq!(first.next().unwrap(), sec.next().unwrap());
     }
 
     #[test]
     fn mutation_is_seedable() {
-        let mut first =
-            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "1", Rule::value)
-                .unwrap();
-        let mut sec =
-            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(2)), "1", Rule::value)
-                .unwrap();
+        let mut first = get_mutator_helper(1, "1");
+        let mut sec = get_mutator_helper(2, "123");
         assert_ne!(first.next().unwrap(), sec.next().unwrap());
     }
 
     #[test]
     fn mutation_different_inputs_produces_different_result() {
-        let mut first =
-            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value)
-                .unwrap();
-        let mut sec =
-            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "124", Rule::value)
-                .unwrap();
+        let mut first = get_mutator_helper(1, "123");
+        let mut sec = get_mutator_helper(1, "124");
         assert_ne!(first.next().unwrap(), sec.next().unwrap());
     }
 
     #[test]
     fn mutation_produces_different_result_each_time() {
-        let mut first =
-            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(1)), "123", Rule::value)
-                .unwrap();
+        let mut first = get_mutator_helper(1, "123");
         assert_ne!(first.next().unwrap(), first.next().unwrap());
     }
 
@@ -296,20 +304,32 @@ mod tests {
     }
 
     #[test]
+    fn position_moves_get_summed_up() {
+        let mut offsets = BTreeMap::<usize, i64>::new();
+        Mutator::move_index(&mut offsets, 3, 2);
+        Mutator::move_index(&mut offsets, 5, 2);
+        assert_eq!(Mutator::get_moved_index(&offsets, 4), 6);
+        assert_eq!(Mutator::get_moved_index(&offsets, 5), 7); // moves are not inclusive
+        assert_eq!(Mutator::get_moved_index(&offsets, 6), 10);
+    }
+
+    #[test]
     fn automata_not_filtered_upon_max_quota_with_single_automaton() {
-        let mutator =
-            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(123)), "1234", Rule::value)
-                .unwrap();
+        let mutator = get_mutator_helper(123, "1234");
         assert_eq!(mutator.choose_for_mutation(0).len(), 1);
         assert_eq!(mutator.choose_for_mutation(1).len(), 1);
         assert_eq!(mutator.choose_for_mutation(2).len(), 1);
     }
 
     #[test]
+    fn nothing_to_choose_for_mutation_when_input_is_empty() {
+        let mutator = get_mutator_helper(123, "");
+        assert_eq!(mutator.choose_for_mutation(0).len(), 0);
+    }
+
+    #[test]
     fn automata_are_chosen_in_asc_order() {
-        let mutator =
-            Mutator::new::<JsonLexer, Rule>(Box::new(PRandomizer::new(123)), "1234", Rule::value)
-                .unwrap();
+        let mutator = get_mutator_helper(123, "1234");
         let chosen = mutator.choose_for_mutation(100);
         assert!(chosen.len() > 0);
         for el_idx in 1..chosen.len() {
@@ -319,13 +339,18 @@ mod tests {
 
     #[test]
     fn automata_not_filtered_upon_max_quota_with_multiple_automata() {
-        assert_eq!(valid_mutator().choose_for_mutation(0).len(), 4);
+        assert_eq!(
+            get_mutator_helper(123, "[1,2,3]")
+                .choose_for_mutation(0)
+                .len(),
+            4
+        );
     }
 
     #[test]
     #[should_panic]
     fn panic_when_fuzzing_token_with_invalid_idx() {
-        valid_mutator().fuzz_token(
+        get_mutator_helper(123, "[1,2,3]").fuzz_token(
             123,
             10000,
             &mut BTreeMap::<usize, i64>::new(),
@@ -333,9 +358,37 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn there_is_always_at_least_one_token_to_be_fuzzed() {
-    //     // TODO mock get h-coef to 1 to test this
-    //     valid_mutator().get_tokens_count();
-    // }
+    #[test]
+    fn there_is_always_at_least_one_token_to_be_fuzzed() {
+        let mut mocked: MockConfigurable = MockConfigurable::new();
+        mocked
+            .expect_get_horizontal_randomness_coef()
+            .return_const(1_u32);
+
+        assert_eq!(
+            get_mocked_mutator_helper(123, "[1,2,3]", Box::new(mocked)).get_tokens_count(),
+            1
+        );
+    }
+
+    #[test]
+    fn number_of_fuzzed_tokens_is_proportional_to_h_coef() {
+        for (cnt, coef) in vec![
+            (1, 20_u32),
+            (2, 40_u32),
+            (3, 60_u32),
+            (4, 80_u32),
+            (5, 100_u32),
+        ] {
+            let mut mocked: MockConfigurable = MockConfigurable::new();
+            mocked
+                .expect_get_horizontal_randomness_coef()
+                .return_const(coef);
+
+            assert_eq!(
+                get_mocked_mutator_helper(123, "[1,2,3,4]", Box::new(mocked)).get_tokens_count(),
+                cnt
+            );
+        }
+    }
 }
