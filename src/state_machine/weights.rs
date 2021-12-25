@@ -135,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn recalculation_with_no_extremization_preserves_fractions() {
+    fn recalculation_with_min_randomness_preserves_fractions() {
         let new_weights = recalculate_helper(vec![1, 2, 3], 100);
         assert_eq!(new_weights.len(), 3);
         assert_eq!(new_weights[0] * 2, new_weights[1] - new_weights[0]);
@@ -184,17 +184,17 @@ mod tests {
     }
 
     #[test]
-    fn increasing_quota_increases_extremization() {
-        let low_extremization = recalculate_helper(vec![1, 2], 90);
-        let high_extremization = recalculate_helper(vec![1, 2], 10);
+    fn increasing_quota_increases_randomness() {
+        let low_randomness = recalculate_helper(vec![1, 2], 90);
+        let high_randomness = recalculate_helper(vec![1, 2], 10);
         assert!(
-            (low_extremization[1] - low_extremization[0]) / low_extremization[0]
-                < (high_extremization[1] - high_extremization[0]) / high_extremization[0]
+            (low_randomness[1] - low_randomness[0]) / low_randomness[0]
+                < (high_randomness[1] - high_randomness[0]) / high_randomness[0]
         );
     }
 
     #[test]
-    fn extremization_preserves_proportionality() {
+    fn randomness_preserves_proportionality() {
         let small_proportion = recalculate_helper(vec![1, 2], 50);
         let big_proportion = recalculate_helper(vec![1, 100], 50);
 
@@ -246,7 +246,7 @@ mod tests {
 
     #[test]
     fn choose_single_choice_regardless_seed() {
-        // when there is only one choice, it should
+        // when there is only one option, it should
         // be chosen regardless the seed
         for seed in [0, 100, 2000] {
             assert_eq!(
