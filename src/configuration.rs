@@ -150,8 +150,8 @@ mod tests {
     #[test]
     fn default_configs_are_acquired_from_file() {
         let config = Config::new();
-        assert_eq!(config.get_horizontal_randomness_coef(), 100);
-        assert_eq!(config.get_vertical_randomness_coef(), 100);
+        assert_eq!(config.get_horizontal_randomness_coef(), 50);
+        assert_eq!(config.get_vertical_randomness_coef(), 50);
     }
 
     #[test]
