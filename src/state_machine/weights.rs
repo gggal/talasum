@@ -52,7 +52,7 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
         let mut top_limit = 0;
 
         for (weight, group) in &weights.into_iter().group_by(|(w, _)| *w) {
-            let new_val = weight * v_coef + prev_weight * (100 - v_coef);
+            let new_val = weight * (101 - v_coef) + prev_weight * (v_coef - 1);
             prev_weight = weight;
 
             for (_, tr) in group {
@@ -104,7 +104,8 @@ mod tests {
     }
 
     fn choose_helper(input: Vec<WeightedTransition<String>>, seed: u64) -> Transformation<String> {
-        TransitionChoice::<String>::new(input, 100).choose()(seed)
+        // choose with v-randomness set at min
+        TransitionChoice::<String>::new(input, 1).choose()(seed)
             .unwrap()
             .transformation
     }
@@ -136,7 +137,7 @@ mod tests {
 
     #[test]
     fn recalculation_with_min_randomness_preserves_fractions() {
-        let new_weights = recalculate_helper(vec![1, 2, 3], 100);
+        let new_weights = recalculate_helper(vec![1, 2, 3], 1);
         assert_eq!(new_weights.len(), 3);
         assert_eq!(new_weights[0] * 2, new_weights[1] - new_weights[0]);
         assert_eq!(new_weights[0] * 3, new_weights[2] - new_weights[1]);
@@ -144,7 +145,7 @@ mod tests {
 
     #[test]
     fn recalculation_with_equal_values_preserves_fractions() {
-        for quota in [0, 50, 100] {
+        for quota in [1, 50, 100] {
             let new_weights = recalculate_helper(vec![1, 1, 1], quota);
             assert_eq!(new_weights.len(), 3);
             assert_eq!(new_weights[0] * 2, new_weights[1]);
@@ -185,8 +186,8 @@ mod tests {
 
     #[test]
     fn increasing_quota_increases_randomness() {
-        let low_randomness = recalculate_helper(vec![1, 2], 90);
-        let high_randomness = recalculate_helper(vec![1, 2], 10);
+        let high_randomness = recalculate_helper(vec![1, 2], 90);
+        let low_randomness = recalculate_helper(vec![1, 2], 10);
         assert!(
             (low_randomness[1] - low_randomness[0]) / low_randomness[0]
                 < (high_randomness[1] - high_randomness[0]) / high_randomness[0]
@@ -257,7 +258,7 @@ mod tests {
     }
 
     #[test]
-    fn choose_correctly_from_multiple_choices_based_on_seed() {
+    fn choose_correctly_from_multiple_options_based_on_seed() {
         for seed in [0, 1, 99, 100, 301] {
             assert_eq!(
                 choose_helper(vec![(1, Some(&TEST_NODE1)), (2, Some(&TEST_NODE2))], seed)(

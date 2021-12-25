@@ -227,13 +227,6 @@ mod tests {
     }
 
     #[test]
-    fn mutation_different_inputs_produces_different_result() {
-        let mut first = get_mutator_helper(1, "123");
-        let mut sec = get_mutator_helper(1, "124");
-        assert_ne!(first.next().unwrap(), sec.next().unwrap());
-    }
-
-    #[test]
     fn mutation_produces_different_result_each_time() {
         let mut first = get_mutator_helper(1, "123");
         assert_ne!(first.next().unwrap(), first.next().unwrap());
@@ -339,8 +332,13 @@ mod tests {
 
     #[test]
     fn automata_not_filtered_upon_max_quota_with_multiple_automata() {
+        let mut mocked: MockConfigurable = MockConfigurable::new();
+        mocked
+            .expect_get_horizontal_randomness_coef()
+            .return_const(100_u32);
+
         assert_eq!(
-            get_mutator_helper(123, "[1,2,3]")
+            get_mocked_mutator_helper(123, "[1,2,3]", Box::new(mocked))
                 .choose_for_mutation(0)
                 .len(),
             4
