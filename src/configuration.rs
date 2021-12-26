@@ -75,7 +75,7 @@ impl Config {
         let mut fields = config::Config::default();
         fields
             .merge(config::File::with_name(CONFIG_FILE_NAME))
-            .expect("Coudln't load config file");
+            .expect("Couldn't load config file");
         fields
             .merge(config::Environment::with_prefix(ENV_VARS_PREFIX))
             .expect("Couldn't load config from env variables");
