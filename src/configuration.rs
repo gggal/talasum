@@ -69,7 +69,6 @@ pub struct Config {
     inner: RwLock<ConfigFields>,
 }
 
-#[automock]
 impl Config {
     pub fn new() -> Self {
         let mut fields = config::Config::default();
