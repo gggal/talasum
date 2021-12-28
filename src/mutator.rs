@@ -229,7 +229,16 @@ mod tests {
     #[test]
     fn mutation_produces_different_result_each_time() {
         let mut first = get_mutator_helper(1, "123");
-        assert_ne!(first.next().unwrap(), first.next().unwrap());
+
+        // search for a change in output in the first few values
+        let mut different = false;
+        for _ in 1..3 {
+            if first.next().unwrap() != first.next().unwrap() {
+                different = true;
+                break;
+            }
+        }
+        assert!(different);
     }
 
     #[test]
@@ -388,5 +397,12 @@ mod tests {
                 cnt
             );
         }
+    }
+
+    #[test]
+    fn mutating_different_inputs_produces_different_result() {
+        let mut first = get_mutator_helper(1, "123");
+        let mut sec = get_mutator_helper(1, "null");
+        assert_ne!(first.next().unwrap(), sec.next().unwrap());
     }
 }

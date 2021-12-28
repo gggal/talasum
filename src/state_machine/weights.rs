@@ -52,7 +52,7 @@ impl<T: 'static + Clone + Sync> TransitionChoice<T> {
         let mut top_limit = 0;
 
         for (weight, group) in &weights.into_iter().group_by(|(w, _)| *w) {
-            let new_val = weight * (101 - v_coef) + prev_weight * (v_coef - 1);
+            let new_val = weight * v_coef + prev_weight * (100 - v_coef);
             prev_weight = weight;
 
             for (_, tr) in group {
@@ -104,8 +104,8 @@ mod tests {
     }
 
     fn choose_helper(input: Vec<WeightedTransition<String>>, seed: u64) -> Transformation<String> {
-        // choose with v-randomness set at min
-        TransitionChoice::<String>::new(input, 1).choose()(seed)
+        // choose with v-randomness set at max
+        TransitionChoice::<String>::new(input, 100).choose()(seed)
             .unwrap()
             .transformation
     }
@@ -130,14 +130,22 @@ mod tests {
 
     #[test]
     fn recalculation_for_single_transition() {
-        for quota in [1, 50, 100] {
-            assert_eq!(recalculate_helper([1].to_vec(), quota).len(), 1);
+        for v_coef in [1, 50, 100] {
+            assert_eq!(recalculate_helper([1].to_vec(), v_coef).len(), 1);
         }
     }
 
     #[test]
-    fn recalculation_with_min_randomness_preserves_fractions() {
+    fn recalculation_with_min_v_randomness_preserves_fractions() {
         let new_weights = recalculate_helper(vec![1, 2, 3], 1);
+        assert_eq!(new_weights.len(), 3);
+        assert_eq!(new_weights[0] * 101, new_weights[1] - new_weights[0]);
+        assert_eq!(new_weights[0] * 201, new_weights[2] - new_weights[1]);
+    }
+
+    #[test]
+    fn recalculation_with_max_v_randomness_preserves_fractions() {
+        let new_weights = recalculate_helper(vec![1, 2, 3], 100);
         assert_eq!(new_weights.len(), 3);
         assert_eq!(new_weights[0] * 2, new_weights[1] - new_weights[0]);
         assert_eq!(new_weights[0] * 3, new_weights[2] - new_weights[1]);
@@ -145,8 +153,8 @@ mod tests {
 
     #[test]
     fn recalculation_with_equal_values_preserves_fractions() {
-        for quota in [1, 50, 100] {
-            let new_weights = recalculate_helper(vec![1, 1, 1], quota);
+        for v_coef in [1, 50, 100] {
+            let new_weights = recalculate_helper(vec![1, 1, 1], v_coef);
             assert_eq!(new_weights.len(), 3);
             assert_eq!(new_weights[0] * 2, new_weights[1]);
             assert_eq!(new_weights[0] * 3, new_weights[2]);
@@ -175,8 +183,8 @@ mod tests {
 
     #[test]
     fn duplicate_elements_have_the_same_fraction() {
-        for quota in [10, 50, 90] {
-            let weights = recalculate_helper(vec![1, 2, 2, 3], quota);
+        for v_coef in [10, 50, 90] {
+            let weights = recalculate_helper(vec![1, 2, 2, 3], v_coef);
             assert_eq!(weights.len(), 4);
             assert_eq!(weights[1] - weights[0], weights[2] - weights[1]);
             assert!(weights[1] - weights[0] > weights[0]);
@@ -185,12 +193,12 @@ mod tests {
     }
 
     #[test]
-    fn increasing_quota_increases_randomness() {
+    fn increasing_v_coef_increases_randomness() {
         let high_randomness = recalculate_helper(vec![1, 2], 90);
         let low_randomness = recalculate_helper(vec![1, 2], 10);
         assert!(
             (low_randomness[1] - low_randomness[0]) / low_randomness[0]
-                < (high_randomness[1] - high_randomness[0]) / high_randomness[0]
+                > (high_randomness[1] - high_randomness[0]) / high_randomness[0]
         );
     }
 
@@ -228,18 +236,18 @@ mod tests {
 
     #[test]
     fn choose_with_no_transitions() {
-        for quota in [1, 50, 80, 100] {
+        for v_coef in [1, 50, 80, 100] {
             for seed in [0, 1, 1000, 12312] {
-                assert!(TransitionChoice::<String>::new(vec![], quota).choose()(seed).is_none());
+                assert!(TransitionChoice::<String>::new(vec![], v_coef).choose()(seed).is_none());
             }
         }
     }
 
     #[test]
     fn choose_with_0_seed() {
-        for quota in [1, 50, 80, 100] {
+        for v_coef in [1, 50, 80, 100] {
             assert!(
-                TransitionChoice::<String>::new(vec![(1, Some(&TEST_NODE1))], quota).choose()(0)
+                TransitionChoice::<String>::new(vec![(1, Some(&TEST_NODE1))], v_coef).choose()(0)
                     .is_some()
             );
         }
