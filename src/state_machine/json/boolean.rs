@@ -1,11 +1,11 @@
 use super::super::helper::*;
-use super::super::weights::*;
+use super::super::weights::choose;
 use crate::state_machine::{Automaton, AutomatonNode};
 
 lazy_static! {
     static ref START_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose(vec![(4, None), (1, Some(&REVERSE_BOOLEAN))]),
-        transformation: super::IDENTITY,
+        transition: choose(vec![(2, None), (1, Some(&REVERSE_BOOLEAN))]),
+        transformation: IDENTITY,
     };
     static ref REVERSE_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
         transition: choose(vec![
@@ -21,7 +21,7 @@ lazy_static! {
         },
     };
     static ref NUMERICAL_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose(vec![(1, Some(&QUOTED_BOOLEAN)), (4, Some(&CASED_BOOLEAN))]),
+        transition: choose(vec![(1, Some(&QUOTED_BOOLEAN)), (3, Some(&CASED_BOOLEAN))]),
         transformation: |input| {
             if input == "true" {
                 String::from("1")
@@ -38,10 +38,10 @@ lazy_static! {
         transition: choose(vec![
             (1, Some(&UPPER_CASED_BOOLEAN)),
             (1, Some(&RANDOM_CASED_BOOLEAN)),
-            (1, Some(&CAPITALIZED_BOOLEAN)),
-            (7, None)
+            (2, Some(&CAPITALIZED_BOOLEAN)),
+            (2, None)
         ]),
-        transformation: super::IDENTITY,
+        transformation: IDENTITY,
     };
     static ref UPPER_CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String> {
         transition: choose(vec![(1, None)]),
@@ -70,28 +70,47 @@ lazy_static! {
 #[cfg(test)]
 mod tests {
     use super::BOOL_AUTOMATON;
+    use itertools::Itertools;
+
+    lazy_static! {
+        // sorted list of a 1000 fuzzed bool values
+        static ref TEST_FUZZ_VALUES: Vec<String> = (1..1000)
+            .map(|i| BOOL_AUTOMATON.generate(i))
+            .sorted()
+            .collect();
+    }
 
     #[test]
-    fn try_bool() {
-        for _i in 1..20 {
-            let res: String = BOOL_AUTOMATON.traverse(String::from("false"), 123);
-            println!("Res is: {}", res);
-        }
+    fn bool_automaton_is_seedable() {
+        assert_ne!(TEST_FUZZ_VALUES.last(), TEST_FUZZ_VALUES.first());
+    }
+
+    #[test]
+    fn true_and_false_results_are_equally_likely() {
+        let trues = TEST_FUZZ_VALUES
+            .iter()
+            .filter(|fuzzed| "true".eq_ignore_ascii_case(fuzzed))
+            .count();
+        let falses = TEST_FUZZ_VALUES
+            .iter()
+            .filter(|fuzzed| "false".eq_ignore_ascii_case(fuzzed))
+            .count();
+        let delta = 20_usize;
+        assert!(trues < falses + delta);
+        assert!(trues > falses - delta);
+    }
+
+    #[test]
+    fn result_is_diverse_enough() {
+        let unique_values = TEST_FUZZ_VALUES.iter().unique().count();
+        assert!(unique_values > 5);
     }
 
     #[test]
     fn try_bool1() {
-        for _i in 1..20 {
-            let res: String = BOOL_AUTOMATON.generate(123);
+        for i in 1..20 {
+            let res: String = BOOL_AUTOMATON.generate(i);
             println!("Res is: {}", res);
         }
-    }
-
-    #[test]
-    fn capitalized_works() {
-        assert_eq!(
-            super::to_capitalized(String::from("word")),
-            String::from("Word")
-        );
     }
 }

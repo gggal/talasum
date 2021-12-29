@@ -1,5 +1,8 @@
 use super::{PRandomizer, Randomizer};
 
+/// The Identity function
+pub const IDENTITY: fn(String) -> String = |input| input;
+
 pub fn char_flip_case(ch: char) -> char {
     if ch.is_uppercase() {
         ch.to_ascii_lowercase()
@@ -71,5 +74,13 @@ mod tests {
     fn random_capitalization_can_randomize_uppercase_string() {
         let res1 = random_capitalization(123322, String::from("THIS IS MY TEST"));
         assert_ne!(res1, String::from("THIS IS MY TEST"));
+    }
+
+    #[test]
+    fn capitalized_works() {
+        assert_eq!(
+            super::to_capitalized(String::from("word")),
+            String::from("Word")
+        );
     }
 }

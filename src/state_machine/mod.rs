@@ -52,7 +52,7 @@ impl<T: Eq + core::fmt::Debug> Automaton<T> {
         self.traverse(self.init_value(seed), seed)
     }
 
-    /// Fuzzes the `input` value based on the seed value
+    /// Fuzzes the `input` value based on the `seed` value
     pub fn traverse(&self, input: T, seed: u64) -> T {
         // !TODO rename to mutate ?
         let mut seed = PRandomizer::new(seed);
