@@ -1,54 +1,36 @@
 use super::super::helper::*;
-use super::super::weights::*;
 use crate::state_machine::{Automaton, AutomatonNode};
 
 lazy_static! {
-    static ref CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose(vec![
-            (2, Some(&UPPER_CASED_NULL)),
-            (1, Some(&RANDOM_CASED_NULL)),
-            (2, Some(&CAPITALIZED_NULL))
-        ]),
-        transformation: IDENTITY,
-    };
-    pub static ref START_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: choose(vec![
-            (1, Some(&CASED_NULL)),
-            (1, Some(&NIL_NULL)),
-            (1, Some(&NONE_NULL)),
-            (3, Some(&ZERO_NULL)),
-            (2, Some(&EMPTY_NULL))
-        ]),
-        transformation: IDENTITY,
-    };
-    static ref NIL_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: Box::new(|_| Some(&CASED_NULL)),
-        transformation: |_| String::from("nil"),
-    };
-    static ref NONE_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: Box::new(|_| Some(&CASED_NULL)),
-        transformation: |_| String::from("none"),
-    };
-    static ref ZERO_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: Box::new(|_| None),
-        transformation: |_| String::from("0"),
-    };
-    static ref EMPTY_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: Box::new(|_| None),
-        transformation: |_| String::from(""),
-    };
-    static ref UPPER_CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: Box::new(|_| None),
-        transformation: |text| to_upper_case(text)
-    };
-    static ref RANDOM_CASED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: Box::new(|_| None),
-        transformation: |text| to_random_case(text)
-    };
-    static ref CAPITALIZED_NULL: AutomatonNode<String> = AutomatonNode::<String> {
-        transition: Box::new(|_| None),
-        transformation: |text| to_capitalized(text)
-    };
+    static ref CASED_NULL: AutomatonNode<String> = AutomatonNode::<String>::new().set_edges(vec![
+        (2, &UPPER_CASED_NULL),
+        (1, &RANDOM_CASED_NULL),
+        (2, &CAPITALIZED_NULL)
+    ]);
+    pub static ref START_NULL: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_edges(vec![
+            (1, &CASED_NULL),
+            (1, &NIL_NULL),
+            (1, &NONE_NULL),
+            (3, &ZERO_NULL),
+            (2, &EMPTY_NULL)
+        ]);
+    static ref NIL_NULL: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_edge(&CASED_NULL)
+        .set_func(|_| String::from("nil"));
+    static ref NONE_NULL: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_edge(&CASED_NULL)
+        .set_func(|_| String::from("none"));
+    static ref ZERO_NULL: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_func(|_| String::from("0"),);
+    static ref EMPTY_NULL: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_func(|_| String::from(""),);
+    static ref UPPER_CASED_NULL: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_func(to_upper_case);
+    static ref RANDOM_CASED_NULL: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_func(to_random_case);
+    static ref CAPITALIZED_NULL: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_func(to_capitalized);
     pub static ref NULL_AUTOMATON: Automaton<String> = Automaton::<String> {
         initial_node: &START_NULL,
         generator: |_| String::from("null"),

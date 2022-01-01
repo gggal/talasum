@@ -25,6 +25,53 @@ pub struct AutomatonNode<T: 'static> {
     transformation: Transformation<T>,
 }
 
+impl AutomatonNode<String> {
+    /// Constructs a trivial automaton node: one without a
+    /// transformation function and adjacent nodes.
+    fn new() -> Self {
+        Self {
+            transition: Box::new(|_| None),
+            transformation: helper::IDENTITY,
+        }
+    }
+
+    /// A builder function that adds a single adjacent node to
+    /// the current one.
+    ///
+    /// If adjacent nodes are not added, the current state is
+    /// final.
+    fn set_edge(mut self, next: &'static Self) -> Self {
+        self.transition = Box::new(move |_| Some(next));
+        self
+    }
+
+    /// A builder function that adds a set of adjacent nodes to the
+    /// current one, each with its own probability number derived by the
+    /// user-defined constant and the v-coef value. Upon execution,
+    /// one of these nodes will be chosen based on the seed value.
+    ///
+    /// If adjacent nodes are not added, the current state is
+    /// final.
+    fn set_edges(mut self, edges: Vec<(u32, &'static Self)>) -> Self {
+        self.transition = weights::choose(
+            edges
+                .iter()
+                .map(|(num, node)| (*num, Some(*node)))
+                .collect(),
+        );
+        self
+    }
+
+    /// A builder function that adds a transformation function to the current node.
+    ///
+    /// If a transformation function is not added, execution will proceed with the
+    /// next state without changing the fuzzing value.
+    fn set_func(mut self, func: Transformation<String>) -> AutomatonNode<String> {
+        self.transformation = func;
+        self
+    }
+}
+
 /// Magi automatons are finite state machines with a predefined set of states and edges.
 /// Each state represents an unfinished fuzz result. Each edge represents an operation
 /// to be performed on said result. The decision of what is the next edge is performed by

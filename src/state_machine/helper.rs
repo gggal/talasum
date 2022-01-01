@@ -1,7 +1,12 @@
-use super::{PRandomizer, Randomizer};
+use super::{AutomatonNode, PRandomizer, Randomizer};
 
 /// The Identity function
 pub const IDENTITY: fn(String) -> String = |input| input;
+
+lazy_static! {
+    /// A trivial final state without a transformation function
+    pub static ref FINAL: AutomatonNode<String> = AutomatonNode::<String>::new();
+}
 
 pub fn char_flip_case(ch: char) -> char {
     if ch.is_uppercase() {
