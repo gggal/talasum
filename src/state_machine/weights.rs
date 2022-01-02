@@ -111,14 +111,10 @@ mod tests {
     }
 
     lazy_static! {
-        static ref TEST_NODE1: AutomatonNode<String> = AutomatonNode::<String> {
-            transition: Box::new(|_| None),
-            transformation: |_| String::from("Test1"),
-        };
-        static ref TEST_NODE2: AutomatonNode<String> = AutomatonNode::<String> {
-            transition: Box::new(|_| None),
-            transformation: |_| String::from("Test2"),
-        };
+        static ref TEST_NODE1: AutomatonNode<String> =
+            AutomatonNode::<String>::new().set_func(|_| String::from("Test1"));
+        static ref TEST_NODE2: AutomatonNode<String> =
+            AutomatonNode::<String>::new().set_func(|_| String::from("Test2"));
     }
 
     #[test]
