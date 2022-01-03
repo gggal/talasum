@@ -1,5 +1,5 @@
 use super::super::helper::*;
-use crate::state_machine::{Automaton, AutomatonNode};
+use crate::state_machine::{json::whitespace::START_WS, Automaton, AutomatonNode};
 
 lazy_static! {
     static ref START_BOOLEAN: AutomatonNode<String> =
@@ -32,12 +32,15 @@ lazy_static! {
             (2, &CAPITALIZED_BOOLEAN),
             (2, &FINAL)
         ]);
-    static ref UPPER_CASED_BOOLEAN: AutomatonNode<String> =
-        AutomatonNode::<String>::new().set_func(to_upper_case);
-    static ref RANDOM_CASED_BOOLEAN: AutomatonNode<String> =
-        AutomatonNode::<String>::new().set_func(to_random_case);
-    static ref CAPITALIZED_BOOLEAN: AutomatonNode<String> =
-        AutomatonNode::<String>::new().set_func(to_capitalized);
+    static ref UPPER_CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_func(to_upper_case)
+        .set_edge(&START_WS);
+    static ref RANDOM_CASED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_func(to_random_case)
+        .set_edge(&START_WS);
+    static ref CAPITALIZED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_func(to_capitalized)
+        .set_edge(&START_WS);
     pub static ref BOOL_AUTOMATON: Automaton<String> = Automaton::<String> {
         initial_node: &START_BOOLEAN,
         generator: |seed| {
