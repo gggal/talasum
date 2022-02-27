@@ -6,7 +6,7 @@ lazy_static! {
         AutomatonNode::<String>::new().set_edges(vec![(2, &FINAL), (1, &REVERSE_BOOLEAN)]);
     static ref REVERSE_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_edges(vec![(1, &CASED_BOOLEAN), (1, &NUMERICAL_BOOLEAN)])
-        .set_func(|input| {
+        .set_func(|_, input| {
             if input == "true" {
                 String::from("false")
             } else {
@@ -15,7 +15,7 @@ lazy_static! {
         });
     static ref NUMERICAL_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_edges(vec![(1, &QUOTED_BOOLEAN), (3, &CASED_BOOLEAN)])
-        .set_func(|input| {
+        .set_func(|_, input| {
             if input == "true" {
                 String::from("1")
             } else {
@@ -24,7 +24,7 @@ lazy_static! {
         });
     static ref QUOTED_BOOLEAN: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_edge(&CASED_BOOLEAN)
-        .set_func(|text| format!("\"{}\"", text));
+        .set_func(|_, text| format!("\"{}\"", text));
     static ref CASED_BOOLEAN: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_edges(vec![
             (1, &UPPER_CASED_BOOLEAN),

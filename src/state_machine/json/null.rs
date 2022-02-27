@@ -17,15 +17,15 @@ lazy_static! {
         ]);
     static ref NIL_NULL: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_edge(&CASED_NULL)
-        .set_func(|_| String::from("nil"));
+        .set_func(|_, _| String::from("nil"));
     static ref NONE_NULL: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_edge(&CASED_NULL)
-        .set_func(|_| String::from("none"));
+        .set_func(|_, _| String::from("none"));
     static ref ZERO_NULL: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|_| String::from("0"),)
+        .set_func(|_, _| String::from("0"),)
         .set_edge(&START_WS);
     static ref EMPTY_NULL: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|_| String::from(""),)
+        .set_func(|_, _| String::from(""),)
         .set_edge(&START_WS);
     static ref UPPER_CASED_NULL: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_func(to_upper_case)

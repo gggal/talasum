@@ -15,27 +15,27 @@ lazy_static! {
             (1, &TRAILING_SPACE)
         ]);
     static ref LEADING_CR: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|text| format!("\r{}", text))
+        .set_func(|_, text| format!("\r{}", text))
         .set_cycle(1);
     static ref LEADING_LF: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|text| format!("\n{}", text))
+        .set_func(|_, text| format!("\n{}", text))
         .set_cycle(1);
     static ref LEADING_TAB: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|text| format!("\t{}", text))
+        .set_func(|_, text| format!("\t{}", text))
         .set_cycle(1);
     static ref LEADING_SPACE: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|text| format!(" {}", text))
+        .set_func(|_, text| format!(" {}", text))
         .set_cycle(1);
     static ref TRAILING_CR: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|text| format!("{}\r", text))
+        .set_func(|_, text| format!("{}\r", text))
         .set_cycle(1);
     static ref TRAILING_LF: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|text| format!("{}\n", text))
+        .set_func(|_, text| format!("{}\n", text))
         .set_cycle(1);
     static ref TRAILING_TAB: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|text| format!("{}\t", text))
+        .set_func(|_, text| format!("{}\t", text))
         .set_cycle(1);
     static ref TRAILING_SPACE: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|text| format!("{} ", text))
+        .set_func(|_, text| format!("{} ", text))
         .set_cycle(1);
 }

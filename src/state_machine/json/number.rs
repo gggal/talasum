@@ -20,20 +20,22 @@ lazy_static! {
             (1, &DECIMAL_COMMA_REAL_NUMBER),
             (2, &START_WS)
         ])
-        .set_func(|num| num
+        .set_func(|_, num| num
             .parse::<f64>()
             .expect("Invalid automaton definition")
             .to_string());
     static ref INCREASED_PRECISION_REAL_NUMBER: AutomatonNode<String> =
-        AutomatonNode::<String>::new().set_cycle(1).set_func(|num| {
-            num.parse::<f64>()
-                .expect("Invalid automaton definition")
-                .sqrt()
-                .to_string()
-        });
+        AutomatonNode::<String>::new()
+            .set_cycle(1)
+            .set_func(|_, num| {
+                num.parse::<f64>()
+                    .expect("Invalid automaton definition")
+                    .sqrt()
+                    .to_string()
+            });
     static ref DECIMAL_COMMA_REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_edge(&START_WS)
-        .set_func(|num| str::replace(&num, ".", ","));
+        .set_func(|_, num| str::replace(&num, ".", ","));
     static ref WHOLE_NUMBER: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_edges(vec![
             (2, &POSITIVE_NUMBER),
@@ -52,7 +54,7 @@ lazy_static! {
     static ref POWER_OVERFLOWED_NATURAL_NUMBER: AutomatonNode<String> =
         AutomatonNode::<String>::new()
             .set_cycle(1)
-            .set_func(|input| {
+            .set_func(|_, input| {
                 input
                     .parse::<BigUint>()
                     .expect("Invalid automaton definition")
@@ -62,12 +64,12 @@ lazy_static! {
     static ref SUM_OVERFLOWED_NATURAL_NUMBER: AutomatonNode<String> =
         AutomatonNode::<String>::new()
             .set_cycle(1)
-            .set_func(|input| { format!("{}1", input) });
+            .set_func(|_, input| { format!("{}1", input) });
     static ref OVERFLOWED_REAL_NUMBER: AutomatonNode<String> =
-        AutomatonNode::<String>::new().set_func(|input| { format!("0.{}", input) });
+        AutomatonNode::<String>::new().set_func(|_, input| { format!("0.{}", input) });
     static ref POWER_NATURAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_cycle(1)
-        .set_func(|input| {
+        .set_func(|_, input| {
             match input.parse::<u128>() {
                 Ok(num) if num < u32::MAX as u128 => num.pow(2).to_string(),
                 Ok(_) => u64::MAX.to_string(),
@@ -76,7 +78,7 @@ lazy_static! {
         });
     static ref SUM_NATURAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_cycle(1)
-        .set_func(|input| {
+        .set_func(|_, input| {
             match input.parse::<u128>() {
                 Ok(num) if num < u64::MAX as u128 / 2 => (num * 2).to_string(),
                 Ok(_) => u64::MAX.to_string(),
@@ -84,18 +86,18 @@ lazy_static! {
             }
         });
     static ref HEX_NUMBER: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|input| format!("{:#01x}", input.parse::<u64>().unwrap()));
+        .set_func(|_, input| format!("{:#01x}", input.parse::<u64>().unwrap()));
     static ref OCTAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|input| format!("0{:o}", input.parse::<u64>().unwrap()));
+        .set_func(|_, input| format!("0{:o}", input.parse::<u64>().unwrap()));
     static ref NA_NUMBER: AutomatonNode<String> =
-        AutomatonNode::<String>::new().set_func(|_| String::from("NaN"));
+        AutomatonNode::<String>::new().set_func(|_, _| String::from("NaN"));
     static ref INFINITE_NUMBER: AutomatonNode<String> =
-        AutomatonNode::<String>::new().set_func(|_| String::from("∞"));
+        AutomatonNode::<String>::new().set_func(|_, _| String::from("∞"));
     static ref SCI_NOTATION_REAL_NUMBER: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_edge(&START_WS)
-        .set_func(|num| format!("{:+e}", num.parse::<f64>().unwrap()));
+        .set_func(|_, num| format!("{:+e}", num.parse::<f64>().unwrap()));
     static ref NEGATIVE_NUMBER: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|num| format!("-{}", num))
+        .set_func(|_, num| format!("-{}", num))
         .set_edges(vec![(1, &FINAL), (1, &REAL_NUMBER)]);
     static ref POSITIVE_NUMBER: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_edges(vec![(1, &FINAL), (1, &REAL_NUMBER)]);

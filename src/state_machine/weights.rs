@@ -112,9 +112,9 @@ mod tests {
 
     lazy_static! {
         static ref TEST_NODE1: AutomatonNode<String> =
-            AutomatonNode::<String>::new().set_func(|_| String::from("Test1"));
+            AutomatonNode::<String>::new().set_func(|_, _| String::from("Test1"));
         static ref TEST_NODE2: AutomatonNode<String> =
-            AutomatonNode::<String>::new().set_func(|_| String::from("Test2"));
+            AutomatonNode::<String>::new().set_func(|_, _| String::from("Test2"));
     }
 
     #[test]
@@ -255,7 +255,7 @@ mod tests {
         // be chosen regardless the seed
         for seed in [0, 100, 2000] {
             assert_eq!(
-                choose_helper(vec![(1, Some(&TEST_NODE1))], seed)(String::new()),
+                choose_helper(vec![(1, Some(&TEST_NODE1))], seed)(0, String::new()),
                 "Test1"
             );
         }
@@ -266,6 +266,7 @@ mod tests {
         for seed in [0, 1, 99, 100, 301] {
             assert_eq!(
                 choose_helper(vec![(1, Some(&TEST_NODE1)), (2, Some(&TEST_NODE2))], seed)(
+                    0,
                     String::new()
                 ),
                 "Test1"
@@ -275,6 +276,7 @@ mod tests {
         for seed in [101, 299, 401, 599] {
             assert_eq!(
                 choose_helper(vec![(1, Some(&TEST_NODE1)), (2, Some(&TEST_NODE2))], seed)(
+                    0,
                     String::new()
                 ),
                 "Test2"
@@ -287,6 +289,6 @@ mod tests {
         let func = choose(vec![(1, Some(&TEST_NODE1))])(1234)
             .unwrap()
             .transformation;
-        assert_eq!(func(String::new()), "Test1");
+        assert_eq!(func(0, String::new()), "Test1");
     }
 }

@@ -5,7 +5,7 @@ pub mod weights;
 
 // Transformation is an operation to be performed on a value as it's moved
 // through the automaton
-type Transformation<T> = fn(T) -> T;
+type Transformation<T> = fn(u64, T) -> T;
 
 /// Transition from one state in the automaton to another one adjacent to it.
 /// If the value is None, then the state is final and there isn't a state
@@ -148,8 +148,8 @@ impl<T: Eq + core::fmt::Debug> Automaton<T> {
             cycle,
         }) = state
         {
-            value = transformation(value);
             rand = seeder.get();
+            value = transformation(rand, value);
             node_stack.push(state);
 
             // if the next node has already been visited
@@ -170,25 +170,25 @@ mod tests {
 
     lazy_static! {
         static ref TEST_NODE1: AutomatonNode<String> =
-            AutomatonNode::<String>::new().set_func(|_| String::from("Test1"));
+            AutomatonNode::<String>::new().set_func(|_, _| String::from("Test1"));
         static ref TEST_NODE2: AutomatonNode<String> =
-            AutomatonNode::<String>::new().set_func(|_| String::from("Test2"));
+            AutomatonNode::<String>::new().set_func(|_, _| String::from("Test2"));
         static ref FIRST: AutomatonNode<String> = AutomatonNode::<String>::new()
-            .set_func(|text| format!("1{}", text))
+            .set_func(|_, text| format!("1{}", text))
             .set_edges(vec![(1, &SECOND), (1, &THIRD)]);
         static ref SECOND: AutomatonNode<String> = AutomatonNode::<String>::new()
-            .set_func(|text| format!("2{}", text))
+            .set_func(|_, text| format!("2{}", text))
             .set_edge(&THIRD);
         static ref THIRD: AutomatonNode<String> =
-            AutomatonNode::<String>::new().set_func(|text| format!("3{}", text));
+            AutomatonNode::<String>::new().set_func(|_, text| format!("3{}", text));
         static ref FIRST_CYCLIC: AutomatonNode<String> = AutomatonNode::<String>::new()
-            .set_func(|text| format!("4{}", text))
+            .set_func(|_, text| format!("4{}", text))
             .set_edge(&SECOND_CYCLIC);
         static ref SECOND_CYCLIC: AutomatonNode<String> = AutomatonNode::<String>::new()
-            .set_func(|text| format!("5{}", text))
+            .set_func(|_, text| format!("5{}", text))
             .set_edges(vec![(2, &THIRD_CYCLIC), (1, &FINAL)]);
         static ref THIRD_CYCLIC: AutomatonNode<String> = AutomatonNode::<String>::new()
-            .set_func(|text| format!("6{}", text))
+            .set_func(|_, text| format!("6{}", text))
             .set_cycle(2);
         static ref TEST_AUTOMATON: Automaton<String> = Automaton::<String> {
             initial_node: &FIRST,
@@ -216,7 +216,7 @@ mod tests {
             .set_edges(vec![(1, &TEST_NODE1), (1, &TEST_NODE2)])
             .set_edge(&TEST_NODE1);
         assert_eq!(
-            ((node.transition)(123).unwrap().transformation)(String::new()),
+            ((node.transition)(123).unwrap().transformation)(0, String::new()),
             "Test1"
         );
         assert_eq!(node.cycle, 0);
@@ -226,7 +226,7 @@ mod tests {
     fn setting_single_edge_correctly() {
         let node = AutomatonNode::new().set_edge(&TEST_NODE1);
         assert_eq!(
-            ((node.transition)(123).unwrap().transformation)(String::new()),
+            ((node.transition)(123).unwrap().transformation)(0, String::new()),
             "Test1"
         );
     }
@@ -238,7 +238,7 @@ mod tests {
             .set_edge(&TEST_NODE1)
             .set_edges(vec![(1, &TEST_NODE2)]);
         assert_eq!(
-            ((node.transition)(123).unwrap().transformation)(String::new()),
+            ((node.transition)(123).unwrap().transformation)(0, String::new()),
             "Test2"
         );
         assert_eq!(node.cycle, 0);
@@ -255,11 +255,11 @@ mod tests {
         let node2 = AutomatonNode::new().set_edges(vec![(10000, &TEST_NODE1), (1, &TEST_NODE2)]);
 
         assert_eq!(
-            ((node1.transition)(123).unwrap().transformation)(String::new()),
+            ((node1.transition)(123).unwrap().transformation)(0, String::new()),
             "Test2"
         );
         assert_eq!(
-            ((node2.transition)(123).unwrap().transformation)(String::new()),
+            ((node2.transition)(123).unwrap().transformation)(0, String::new()),
             "Test1"
         );
     }
@@ -281,14 +281,17 @@ mod tests {
 
     #[test]
     fn setting_transformation_correctly() {
-        let node = AutomatonNode::new().set_func(|_| String::from("works"));
-        assert_eq!((node.transformation)(String::new()), String::from("works"));
+        let node = AutomatonNode::new().set_func(|_, _| String::from("works"));
+        assert_eq!(
+            (node.transformation)(0, String::new()),
+            String::from("works")
+        );
     }
 
     #[test]
     fn init_state_is_set_correctly() {
         assert_eq!(
-            (TEST_AUTOMATON.init_state().transformation)(String::from("")),
+            (TEST_AUTOMATON.init_state().transformation)(0, String::from("")),
             String::from("1")
         );
     }

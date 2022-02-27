@@ -1,7 +1,7 @@
 use super::{AutomatonNode, PRandomizer, Randomizer};
 
 /// The Identity function
-pub const IDENTITY: fn(String) -> String = |input| input;
+pub const IDENTITY: fn(u64, String) -> String = |_, input| input;
 
 lazy_static! {
     /// A trivial final state without a transformation function
@@ -34,17 +34,17 @@ pub fn random_digit_string(seed: u64) -> String {
     seed.to_string()
 }
 
-pub fn to_upper_case(s: String) -> String {
+pub fn to_upper_case(_: u64, s: String) -> String {
     s.to_ascii_uppercase()
 }
 
-pub fn to_capitalized(mut s: String) -> String {
+pub fn to_capitalized(_: u64, mut s: String) -> String {
     s[0..1].make_ascii_uppercase();
     s
 }
 
-pub fn to_random_case(s: String) -> String {
-    random_capitalization(123, s)
+pub fn to_random_case(seed: u64, s: String) -> String {
+    random_capitalization(seed, s)
 }
 
 #[cfg(test)]
@@ -84,7 +84,7 @@ mod tests {
     #[test]
     fn capitalized_works() {
         assert_eq!(
-            super::to_capitalized(String::from("word")),
+            super::to_capitalized(0, String::from("word")),
             String::from("Word")
         );
     }
