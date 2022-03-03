@@ -1,83 +1,186 @@
-// use crate::state_machine::{Automaton, AutomatonEdge, AutomatonState};
+use super::super::helper::*;
+use crate::{
+    configuration::Configurable,
+    state_machine::{json::whitespace::START_WS, weights::CONFIG, Automaton, AutomatonNode},
+};
 
-// #[derive(Default, Debug)]
-// pub struct StringAutomaton {
-//     val: String,
-// }
+lazy_static! {
+    static ref START_STRING: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_edges(vec![
+            (1, &EMPTY_OUTPUT),
+            (1, &EMPTY_STRING),
+            (1, &LONG_STRING),
+            (5, &NON_EMPTY_STRING)
+        ]);
+    static ref EMPTY_OUTPUT: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_func(|_, _| { String::from("") });
+    static ref EMPTY_STRING: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_func(|_, _| { String::from("\"\"") });
+    static ref NON_EMPTY_STRING: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_edges(vec![
+            (5, &START_WS),
+            (1, &SINGLE_QUOTED_STRING),
+            (1, &UNQUOTED_STRING),
+            (5, &ADD_VALID_CHAR),
+            (5, &ADD_INVALID_CHAR),
+            (1, &REMOVE_CHAR),
+            (1, &REPLACE_CHAR),
+        ]);
+    static ref SINGLE_QUOTED_STRING: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_func(|_, text| text.replace("\"", "\'"));
+    static ref LONG_STRING: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_func(|num, _| {
+            let text = String::from(&CONFIG.get_common_words()[(num % 1000) as usize]);
+            let mut joined = String::new();
+            for _ in 0..(num % 1024) {
+                joined.push_str(&text.as_str());
+            }
+            format!("\"{}\"", joined)
+        });
+    static ref UNQUOTED_STRING: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_func(|_, text| text.replace("\"", ""));
+    static ref ADD_VALID_UNESCAPED_CHAR: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_func(|seed, text| { insert_random_char_in_string(seed, &text) })
+        .set_cycle(2);
+    static ref ADD_UNESCAPED_QUOTATION_MARK: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_cycle(3)
+        .set_func(|seed, text| insert_string_in_string(seed, &text, "\""));
+    static ref ADD_UNESCAPED_REVERSE_SOLIDUS: AutomatonNode<String> =
+        AutomatonNode::<String>::new()
+            .set_cycle(3)
+            .set_func(|seed, text| insert_string_in_string(seed, &text, "\\"));
+    static ref ADD_ESCAPED_CHARACTER: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_cycle(2)
+        .set_func(|seed, text| {
+            let escaped = ["\\\"", "\\\\", "\\/", "\\b", "\\f", "\\\n", "\\\r", "\\\t"];
+            insert_string_in_string(seed, &text, escaped[(seed % 8) as usize])
+        });
+    static ref ADD_ENCODED: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_edges(vec![
+            (1, &ADD_ENCODED_RANDOM_CASE),
+            (1, &ADD_ENCODED_UPPER_CASE),
+            (1, &ADD_ENCODED_LOWER_CASE)
+        ])
+        .set_func(|seed, text| { insert_random_encoded_char_in_string(seed, &text) });
+    static ref ADD_ENCODED_RANDOM_CASE: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_cycle(3)
+        .set_func(|seed, text| { random_capitalization(seed, text) });
+    static ref ADD_ENCODED_UPPER_CASE: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_cycle(3)
+        .set_func(|seed, text| { to_upper_case(seed, text) });
+    static ref ADD_ENCODED_LOWER_CASE: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_cycle(3);
+    static ref REMOVE_CHAR: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_func(|seed, text| {
+            if text.is_empty() {
+                text
+            } else {
+                let to_drop = (seed % text.len() as u64) as usize;
+                text.char_indices()
+                    .filter(|&(i, _)| i != to_drop)
+                    .map(|c| c.1)
+                    .collect::<String>()
+            }
+        })
+        .set_cycle(1);
+    static ref REPLACE_CHAR: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_func(|seed, text| {
+            if text.is_empty() {
+                text
+            } else {
+                let to_update = (seed % text.len() as u64) as usize;
+                text.char_indices()
+                    .map(|(i, c)| {
+                        if i == to_update {
+                            format!("\\u{:04x}", c as u32)
+                        } else {
+                            String::from(c)
+                        }
+                    })
+                    .collect::<String>()
+            }
+        })
+        .set_cycle(1);
+    static ref ADD_UNPAIRED_SURROGATE: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_cycle(2)
+        .set_func(|seed, text| insert_random_surrogate_in_string(seed, &text));
+    static ref ADD_SURROGATE_PAIR: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_cycle(2)
+        .set_func(|seed, text| insert_random_surrogate_pair_in_string(seed, &text));
+    static ref ADD_INVALID_CHAR: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_edges(vec![(1, &ADD_UNESCAPED_CHAR), (1, &ADD_UNPAIRED_SURROGATE)]);
+    static ref ADD_UNESCAPED_CHAR: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_edges(vec![
+            (1, &ADD_UNESCAPED_QUOTATION_MARK),
+            (1, &ADD_UNESCAPED_REVERSE_SOLIDUS),
+            (1, &ADD_UNESCAPED_CONTROL_CHAR),
+        ]);
+    static ref ADD_UNESCAPED_CONTROL_CHAR: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_func(|seed, text| insert_random_unescaped_control_char(seed, &text))
+        .set_cycle(3);
+    static ref ADD_VALID_CHAR: AutomatonNode<String> =
+        AutomatonNode::<String>::new().set_edges(vec![
+            (1, &ADD_VALID_UNESCAPED_CHAR),
+            (1, &ADD_ESCAPED_CHARACTER),
+            (1, &ADD_SURROGATE_PAIR),
+            (1, &ADD_ENCODED)
+        ]);
+    pub static ref STRING_AUTOMATON: Automaton<String> = Automaton::<String> {
+        initial_node: &START_STRING,
+        generator: |seed| {
+            format!(
+                "\"{}\"",
+                String::from(&CONFIG.get_common_words()[(seed % 1000) as usize])
+            )
+        },
+    };
+}
 
-// impl StringAutomaton {
-//     pub fn new() -> Self {
-//         Self {
-//             val: super::randomization::random_digit_string(123),
-//         }
-//     }
+// characters outside the multilingual plane - TODO
+// each of 3 encodings - TODO
+// add byte order mark - TODO
+//string values to contain bit sequences that cannot encode Unicode characters - TODO
 
-//     pub fn new_from_val(val: String) -> Self {
-//         Self { val: val }
-//     }
+#[cfg(test)]
+mod tests {
+    use crate::randomness::{PRandomizer, Randomizer};
 
-//     fn get_start_state() -> Box<dyn AutomatonState<String>> {
-//         return Box::new(StartString);
-//     }
-// }
+    use super::STRING_AUTOMATON;
+    use itertools::Itertools;
 
-// impl Automaton<String> for StringAutomaton {
-//     fn init_value(&self) -> String {
-//         self.val.clone()
-//     }
+    lazy_static! {
+        // sorted list of a 1000 fuzzed number values
+        static ref TEST_FUZZ_VALUES: Vec<String> = (1..1000)
+            .map(|i| STRING_AUTOMATON.generate(i))
+            .sorted()
+            .collect();
+    }
 
-//     fn init_state(&self) -> Box<dyn AutomatonState<String>> {
-//         Self::get_start_state()
-//     }
-// }
+    #[test]
+    fn string_automaton_is_seedable() {
+        assert_ne!(TEST_FUZZ_VALUES.last(), TEST_FUZZ_VALUES.first());
+    }
 
-// // insert unescaped at random position
-// // empty string
-// // string without quotes
-// // string with single quotes
-// // too long string
-// // different encoding
-// pub struct StartString;
-// impl AutomatonState<String> for StartString {
-//     fn decide_next(&self, seed: u32) -> Option<AutomatonEdge<String>> {
-//         match seed % 100 {
-//             0..=40 => Some((Box::new(LiteralNull), |_, _| String::from("null"))),
-//             41..=50 => Some((Box::new(LiteralNull), |_, _| String::from("Null"))),
-//             51..=60 => Some((Box::new(LiteralNull), |_, _| String::from("nil"))),
-//             61..=70 => Some((Box::new(LiteralNull), |_, _| String::from("Nil"))),
-//             71..=80 => Some((Box::new(LiteralNull), |_, _| String::from("none"))),
-//             81..=90 => Some((Box::new(LiteralNull), |_, _| String::from("None"))),
-//             91..=100 => Some((Box::new(LiteralNull), |_, _| String::from("0"))),
-//             _ => panic!("Invalid seed"),
-//         }
-//     }
-// }
+    #[test]
+    fn result_is_diverse_enough() {
+        let unique_values = TEST_FUZZ_VALUES.iter().unique().count();
+        assert!(unique_values > 15);
+    }
 
-// struct LiteralNull;
-// impl AutomatonState<String> for LiteralNull {
-//     fn decide_next(&self, _seed: u32) -> Option<AutomatonEdge<String>> {
-//         None
-//     }
-// }
+    #[test]
+    fn try_string() {
+        for i in 1..20 {
+            let res: String = super::STRING_AUTOMATON.traverse(String::from("1"), i);
+            println!("Res is: {}", res);
+        }
+    }
 
-// #[cfg(test)]
-// mod tests {
-//     use crate::state_machine::Automaton;
-//     use crate::state_machine::AutomatonState;
-
-//     // #[test]
-//     // #[should_panic(expected = "Invalid seed")]
-//     // fn panic_when_seed_is_invalid() {
-//     //     super::StartNull.decide_next(123);
-//     // }
-
-//     // #[test]
-//     // fn try_null() {
-//     //     let mut my_machine: super::NullAutomaton = super::NullAutomaton::default();
-//     //     for _i in 1..20 {
-//     //         let res = my_machine.traverse();
-//     //         println!("Res is: {}", res);
-//     //     }
-//     //     super::StartNull.decide_next(123);
-//     // }
-// }
+    #[test]
+    fn try_string1() {
+        let mut rand = PRandomizer::new(100);
+        for _ in 0..1000 {
+            let res: String = super::STRING_AUTOMATON.generate(rand.get());
+            println!("Res is: {}", res);
+        }
+    }
+}

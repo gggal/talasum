@@ -1,3 +1,5 @@
+use std::char;
+
 use super::{AutomatonNode, PRandomizer, Randomizer};
 
 /// The Identity function
@@ -30,10 +32,6 @@ pub fn random_capitalization(seed: u64, to_transform: String) -> String {
     transformed
 }
 
-pub fn random_digit_string(seed: u64) -> String {
-    seed.to_string()
-}
-
 pub fn to_upper_case(_: u64, s: String) -> String {
     s.to_ascii_uppercase()
 }
@@ -45,6 +43,100 @@ pub fn to_capitalized(_: u64, mut s: String) -> String {
 
 pub fn to_random_case(seed: u64, s: String) -> String {
     random_capitalization(seed, s)
+}
+
+/// Pick a position in a string based on its content. If the
+/// string is empty, None is returned.
+pub fn random_position_in_string(seed: u64, s: &String) -> Option<usize> {
+    if s.len() != 0 {
+        seed.checked_rem_euclid(s.len() as u64).map(|mut n| {
+            while !s.is_char_boundary(n as usize) {
+                n += 1;
+            }
+            n as usize
+        })
+    } else {
+        None
+    }
+}
+
+fn is_surrogate(num: u32) -> bool {
+    num >= 0xD800 && num <= 0xDFFF
+}
+
+// Pick a character based on input u64 value
+fn get_unicode_char(n: u64) -> char {
+    // get number < 2 ^ 20 and then remove surrogate
+    let mut to_be_char = (n % (1 << 20) as u64) as u32;
+    if is_surrogate(to_be_char) {
+        to_be_char += 2048;
+    }
+    char::from_u32(to_be_char).expect("Number not valid unicode character!")
+}
+
+// Pick an control character based on input u64 value
+fn get_control_char(n: u64) -> String {
+    let mut to_be_char = (n % (1 << 6) as u64) as u32;
+    // in case of C1 control
+    if to_be_char > 0x1F {
+        to_be_char += 0x80
+    }
+    format!("\\u{:04x}", to_be_char)
+}
+
+// Pick a surrogate codepoint based on input u64 value
+fn get_surrogate(n: u64) -> String {
+    let num_to_insert = (n % 2048_u64) as u32;
+    format!("\\u{:04x}", num_to_insert + 0xD800)
+}
+
+fn get_surrogate_pair(n: u64) -> String {
+    let first_num = n << 32;
+    let sec_num = n >> 32;
+
+    let high_surrogate = (first_num % 1024_u64) as u32 + 0xD800;
+    let low_surrogate = (sec_num % 1024_u64) as u32 + 0xDC00;
+    format!("\\u{:04x}\\u{:04x}", high_surrogate, low_surrogate)
+}
+
+/// Insert a char in a string based on input value
+pub fn insert_random_char_in_string(seed: u64, s: &String) -> String {
+    // pick a random char and insert in the text
+    let to_insert = get_unicode_char(seed);
+    insert_string_in_string(seed, s, &String::from(to_insert))
+}
+
+/// Insert an unescaped control char in a string based on input value
+pub fn insert_random_unescaped_control_char(seed: u64, s: &String) -> String {
+    // pick a random char and insert in the text
+    let to_insert = get_control_char(seed);
+    insert_string_in_string(seed, s, &to_insert)
+}
+/// Insert a string somewhere in a string
+pub fn insert_string_in_string(seed: u64, s: &String, to_insert: &str) -> String {
+    match random_position_in_string(seed, s) {
+        Some(pos) => {
+            let mut to_return = s.clone();
+            to_return.insert_str(pos, to_insert);
+            to_return
+        }
+        None => String::from(to_insert),
+    }
+}
+
+pub fn insert_random_surrogate_in_string(seed: u64, s: &String) -> String {
+    let to_insert = get_surrogate(seed);
+    insert_string_in_string(seed, s, &to_insert)
+}
+
+pub fn insert_random_surrogate_pair_in_string(seed: u64, s: &String) -> String {
+    let to_insert = get_surrogate_pair(seed);
+    insert_string_in_string(seed, s, &to_insert)
+}
+
+pub fn insert_random_encoded_char_in_string(seed: u64, s: &String) -> String {
+    let to_insert = get_unicode_char(seed);
+    insert_string_in_string(seed, s, &format!("\\u{:04x}", to_insert as u32))
 }
 
 #[cfg(test)]
@@ -87,5 +179,94 @@ mod tests {
             super::to_capitalized(0, String::from("word")),
             String::from("Word")
         );
+    }
+
+    #[test]
+    fn to_capitalized_does_not_depend_on_seed() {
+        assert_eq!(
+            to_capitalized(100, String::from("word")),
+            to_capitalized(0, String::from("word"))
+        );
+    }
+
+    #[test]
+    fn to_upper_case_works() {
+        assert_eq!(String::from("TEST"), to_upper_case(0, String::from("tesT")));
+    }
+
+    #[test]
+    fn to_upper_case_does_not_depend_on_seed() {
+        assert_eq!(
+            to_upper_case(100, String::from("tesT")),
+            to_upper_case(0, String::from("tesT"))
+        );
+    }
+
+    #[test]
+    fn to_random_case_works() {
+        let input = String::from("test");
+        assert_ne!(input, to_random_case(0, input.clone()));
+    }
+
+    #[test]
+    fn to_random_case_does_not_depend_on_seed() {
+        let input = String::from("test");
+        assert_ne!(
+            to_random_case(100, input.clone()),
+            to_random_case(0, input.clone())
+        );
+    }
+
+    #[test]
+    fn picking_position_in_empty_string_fails() {
+        assert!(random_position_in_string(0, &String::new()).is_none());
+    }
+
+    #[test]
+    fn picking_position_among_ascii_chars_works() {
+        assert_eq!(
+            random_position_in_string(0, &String::from("asd")).unwrap(),
+            0
+        );
+    }
+
+    #[test]
+    fn picking_position_among_2_byte_chars_works() {
+        assert_eq!(
+            random_position_in_string(1, &String::from("aфd")).unwrap(),
+            1
+        );
+        assert_eq!(
+            random_position_in_string(2, &String::from("aфd")).unwrap(),
+            3
+        );
+    }
+
+    #[test]
+    fn pick_character_for_large_number() {
+        assert_eq!(get_unicode_char((1 << 20) as u64 + 97), 'a');
+    }
+
+    #[test]
+    fn avoid_surrogates_while_picking_character() {
+        assert_eq!(
+            get_unicode_char(0xD801),
+            std::char::from_u32(0xD801 + 2048).expect("Not a valid surrogate char")
+        );
+    }
+
+    #[test]
+    fn pick_get_char_returns_correct_value() {
+        assert_eq!(get_unicode_char(97), 'a');
+    }
+
+    #[test]
+    fn surrogate_codepoint_is_properly_formatted() {
+        assert_eq!(get_surrogate(0), "\\ud800");
+    }
+
+    #[test]
+    fn pick_surrogate_codepoint_from_larger_number() {
+        assert_eq!(get_surrogate(1 << 20), "\\ud800");
     }
 }

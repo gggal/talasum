@@ -103,7 +103,7 @@ lazy_static! {
         AutomatonNode::<String>::new().set_edges(vec![(1, &FINAL), (1, &REAL_NUMBER)]);
     pub static ref NUMBER_AUTOMATON: Automaton<String> = Automaton::<String> {
         initial_node: &START_NUMBER,
-        generator: random_digit_string,
+        generator: |seed| seed.to_string(),
     };
 }
 
