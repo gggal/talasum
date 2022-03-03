@@ -1,5 +1,9 @@
 use mockall::automock;
-use std::sync::RwLock;
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+    sync::RwLock,
+};
 
 /// Internal representation of the global configuration
 /// used for deserialization from file
@@ -52,6 +56,10 @@ pub trait Configurable {
     /// value and 100 being the max possible value.
     fn get_horizontal_randomness_coef(&self) -> u32;
 
+    /// Returns a list of the 1000 most commonly used words in the English language
+    /// to be used by generators.
+    fn get_common_words(&self) -> &Vec<String>;
+
     /// Saved for future use for updating configuration at runtime.
     fn set_horizontal_randomness_coef(&mut self, value: u32);
 
@@ -61,12 +69,14 @@ pub trait Configurable {
 
 const CONFIG_FILE_NAME: &str = "Config.toml";
 const ENV_VARS_PREFIX: &str = "magi";
+const COMMON_WORDS_FILE: &str = "resources/misc/most_common_words.txt";
 
 /// An entrypoint to the global configuration -
 /// lll interaction with the crate configuration should
 /// happen through this struct
 pub struct Config {
     inner: RwLock<ConfigFields>,
+    common_words: Vec<String>,
 }
 
 impl Config {
@@ -83,8 +93,15 @@ impl Config {
             .try_into::<ConfigFields>()
             .expect("Couldn't deserialize config");
 
+        let input = File::open(COMMON_WORDS_FILE).expect("Couldn't load common words file");
+        let common_words = BufReader::new(input)
+            .lines()
+            .map(|line| line.expect("Couldn't parse common words file"))
+            .collect();
+
         Config {
             inner: RwLock::new(inner),
+            common_words: common_words,
         }
     }
 
@@ -119,6 +136,10 @@ impl Configurable for Config {
         } else {
             panic!("Value must be from 1 to 100");
         }
+    }
+
+    fn get_common_words(&self) -> &Vec<String> {
+        &self.common_words
     }
 
     fn set_horizontal_randomness_coef(&mut self, value: u32) {
