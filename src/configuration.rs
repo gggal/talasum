@@ -101,7 +101,7 @@ impl Config {
 
         Config {
             inner: RwLock::new(inner),
-            common_words: common_words,
+            common_words,
         }
     }
 

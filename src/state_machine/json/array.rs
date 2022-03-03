@@ -24,7 +24,7 @@ lazy_static! {
     static ref REMOVE_ELEMENT_ARRAY: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_cycle(1)
         .set_func(|seed, text| {
-            let mut elements : Vec<String> = text.replace("[", "").replace("]", "").split(",").map(|a| String::from(a)).collect();
+            let mut elements : Vec<String> = text.replace("[", "").replace("]", "").split(',').map(String::from).collect();
             elements.remove((seed % elements.len() as u64) as usize);
             format!("[{}]", elements.join(", "))
         });
@@ -59,8 +59,8 @@ fn insert_element(seed: u64, text: String, automaton: &Automaton<String>) -> Str
         let mut elements: Vec<String> = text
             .replace("[", "")
             .replace("]", "")
-            .split(",")
-            .map(|a| String::from(a))
+            .split(',')
+            .map(String::from)
             .collect();
         let pos = (seed % elements.len() as u64) as usize;
         elements.insert(pos, to_add);

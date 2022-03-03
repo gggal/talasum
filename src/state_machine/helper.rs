@@ -47,8 +47,8 @@ pub fn to_random_case(seed: u64, s: String) -> String {
 
 /// Pick a position in a string based on its content. If the
 /// string is empty, None is returned.
-pub fn random_position_in_string(seed: u64, s: &String) -> Option<usize> {
-    if s.len() != 0 {
+pub fn random_position_in_string(seed: u64, s: &str) -> Option<usize> {
+    if !s.is_empty() {
         seed.checked_rem_euclid(s.len() as u64).map(|mut n| {
             while !s.is_char_boundary(n as usize) {
                 n += 1;
@@ -61,7 +61,7 @@ pub fn random_position_in_string(seed: u64, s: &String) -> Option<usize> {
 }
 
 fn is_surrogate(num: u32) -> bool {
-    num >= 0xD800 && num <= 0xDFFF
+    (0xD800..=0xDFFF).contains(&num)
 }
 
 // Pick a character based on input u64 value
@@ -100,43 +100,40 @@ fn get_surrogate_pair(n: u64) -> String {
 }
 
 /// Insert a char in a string based on input value
-pub fn insert_random_char_in_string(seed: u64, s: &String) -> String {
-    // pick a random char and insert in the text
-    let to_insert = get_unicode_char(seed);
-    insert_string_in_string(seed, s, &String::from(to_insert))
+pub fn insert_random_char_in_string(seed: u64, s: &str) -> String {
+    insert_string_in_string(seed, s, &get_unicode_char(seed).to_string())
 }
 
 /// Insert an unescaped control char in a string based on input value
-pub fn insert_random_unescaped_control_char(seed: u64, s: &String) -> String {
-    // pick a random char and insert in the text
-    let to_insert = get_control_char(seed);
-    insert_string_in_string(seed, s, &to_insert)
+pub fn insert_random_unescaped_control_char(seed: u64, s: &str) -> String {
+    insert_string_in_string(seed, s, &get_control_char(seed))
 }
 /// Insert a string somewhere in a string
-pub fn insert_string_in_string(seed: u64, s: &String, to_insert: &str) -> String {
+pub fn insert_string_in_string(seed: u64, s: &str, to_insert: &str) -> String {
     match random_position_in_string(seed, s) {
         Some(pos) => {
-            let mut to_return = s.clone();
+            let mut to_return = s.to_string();
             to_return.insert_str(pos, to_insert);
             to_return
         }
-        None => String::from(to_insert),
+        None => to_insert.to_string(),
     }
 }
 
-pub fn insert_random_surrogate_in_string(seed: u64, s: &String) -> String {
-    let to_insert = get_surrogate(seed);
-    insert_string_in_string(seed, s, &to_insert)
+pub fn insert_random_surrogate_in_string(seed: u64, s: &str) -> String {
+    insert_string_in_string(seed, s, &get_surrogate(seed))
 }
 
-pub fn insert_random_surrogate_pair_in_string(seed: u64, s: &String) -> String {
-    let to_insert = get_surrogate_pair(seed);
-    insert_string_in_string(seed, s, &to_insert)
+pub fn insert_random_surrogate_pair_in_string(seed: u64, s: &str) -> String {
+    insert_string_in_string(seed, s, &get_surrogate_pair(seed))
 }
 
-pub fn insert_random_encoded_char_in_string(seed: u64, s: &String) -> String {
-    let to_insert = get_unicode_char(seed);
-    insert_string_in_string(seed, s, &format!("\\u{:04x}", to_insert as u32))
+pub fn insert_random_encoded_char_in_string(seed: u64, s: &str) -> String {
+    insert_string_in_string(
+        seed,
+        s,
+        &format!("\\u{:04x}", get_unicode_char(seed) as u32),
+    )
 }
 
 #[cfg(test)]

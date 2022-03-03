@@ -33,7 +33,7 @@ lazy_static! {
             let text = String::from(&CONFIG.get_common_words()[(num % 1000) as usize]);
             let mut joined = String::new();
             for _ in 0..(num % 1024) {
-                joined.push_str(&text.as_str());
+                joined.push_str(text.as_str());
             }
             format!("\"{}\"", joined)
         });
