@@ -8,9 +8,9 @@ use crate::state_machine::{Automaton, AutomatonNode};
 lazy_static! {
     static ref START_ARRAY: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_edges(vec![
-            (1, &ADD_ELEMENT_ARRAY),
-            (1, &REMOVE_ELEMENT_ARRAY),
-            (1, &FINAL)
+            (5, &ADD_ELEMENT_ARRAY),
+            (1, &LARGE_ARRAY),
+            (5, &FINAL)
         ]);
     static ref ADD_ELEMENT_ARRAY: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_edges(vec![
@@ -21,12 +21,18 @@ lazy_static! {
             (1, &ADD_ARRAY),
             // (1, &ADD_OBJECT),
         ]);
-    static ref REMOVE_ELEMENT_ARRAY: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_cycle(1)
-        .set_func(|seed, text| {
-            let mut elements : Vec<String> = text.replace("[", "").replace("]", "").split(',').map(String::from).collect();
-            elements.remove((seed % elements.len() as u64) as usize);
-            format!("[{}]", elements.join(", "))
+    static ref LARGE_ARRAY: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_func(|num, text| {
+            if text.eq("[]") {
+                text
+            } else {
+                // remove outside brackets
+                let elements = text.get(1..text.len()-1).unwrap();
+
+                // expand the list and put the brackets back
+                let expanded = [elements,", "].concat().repeat((num % 128_u64) as usize);
+                format!("[{}, {}]", expanded, elements)
+            }
         });
     static ref ADD_BOOL: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_cycle(2)
@@ -51,20 +57,10 @@ lazy_static! {
 
 fn insert_element(seed: u64, text: String, automaton: &Automaton<String>) -> String {
     let to_add: String = automaton.generate(seed);
-    if to_add.is_empty() {
-        text
-    } else if text.eq("[]") {
+    if text.eq("[]") {
         format!("[{}]", to_add)
     } else {
-        let mut elements: Vec<String> = text
-            .replace("[", "")
-            .replace("]", "")
-            .split(',')
-            .map(String::from)
-            .collect();
-        let pos = (seed % elements.len() as u64) as usize;
-        elements.insert(pos, to_add);
-        format!("[{}]", elements.join(", "))
+        text.replacen("[", &format!("[ {},", to_add), 1)
     }
 }
 
