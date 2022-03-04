@@ -7,7 +7,7 @@ use crate::{
 lazy_static! {
     static ref START_STRING: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_edges(vec![
-            (1, &EMPTY_OUTPUT),
+            // (1, &EMPTY_OUTPUT),
             (1, &EMPTY_STRING),
             (1, &LONG_STRING),
             (5, &NON_EMPTY_STRING)
