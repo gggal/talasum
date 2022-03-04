@@ -13,7 +13,6 @@ lazy_static! {
             (1, &NIL_NULL),
             (1, &NONE_NULL),
             (3, &ZERO_NULL),
-            // (2, &EMPTY_NULL)
         ]);
     static ref NIL_NULL: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_edge(&CASED_NULL)
@@ -24,9 +23,6 @@ lazy_static! {
     static ref ZERO_NULL: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_func(|_, _| String::from("0"),)
         .set_edge(&START_WS);
-    // static ref EMPTY_NULL: AutomatonNode<String> = AutomatonNode::<String>::new()
-    //     .set_func(|_, _| String::from(""),)
-    //     .set_edge(&START_WS);
     static ref UPPER_CASED_NULL: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_func(to_upper_case)
         .set_edge(&START_WS);

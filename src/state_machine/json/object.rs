@@ -5,11 +5,6 @@ use super::number::NUMBER_AUTOMATON;
 use super::string::STRING_AUTOMATON;
 use crate::state_machine::{json::array::ARRAY_AUTOMATON, Automaton, AutomatonNode};
 
-/*
-add new element
-add new element under existent key
-large object
- */
 lazy_static! {
     static ref START_OBJECT: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_edges(vec![

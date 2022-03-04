@@ -7,13 +7,10 @@ use crate::{
 lazy_static! {
     static ref START_STRING: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_edges(vec![
-            // (1, &EMPTY_OUTPUT),
             (1, &EMPTY_STRING),
             (1, &LONG_STRING),
             (5, &NON_EMPTY_STRING)
         ]);
-    // static ref EMPTY_OUTPUT: AutomatonNode<String> =
-    //     AutomatonNode::<String>::new().set_func(|_, _| { String::from("") });
     static ref EMPTY_STRING: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_func(|_, _| { String::from("\"\"") });
     static ref NON_EMPTY_STRING: AutomatonNode<String> =
@@ -131,11 +128,6 @@ lazy_static! {
         },
     };
 }
-
-// characters outside the multilingual plane - TODO
-// each of 3 encodings - TODO
-// add byte order mark - TODO
-//string values to contain bit sequences that cannot encode Unicode characters - TODO
 
 #[cfg(test)]
 mod tests {

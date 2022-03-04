@@ -98,40 +98,4 @@ mod tests {
     fn fail_to_tokenize_invalid_json() {
         tokenize_json_input_helper("asd");
     }
-
-    // fn type_of<T>(_: &T) -> String {
-    //     format!("{}", std::any::type_name::<T>())
-    // }
-
-    // #[test]
-    // // #[should_panic(expected = "Invalid seed")]
-    // fn test() {
-    //     let text = String::from("[[0, 1],2,3, {\"a\" : 4}]");
-    //     let pairs = JsonLexer::parse(Rule::value, &text).unwrap_or_else(|e| panic!("{}", e));
-    //     println!("pairs {}", pairs.as_str());
-    //     for pair in pairs.flatten() {
-    //         println!("my pair {} , type: {}", pair.as_str(), type_of(&pair));
-    //         println!(
-    //             "my rule {:?}, type: {}",
-    //             pair.as_rule(),
-    //             type_of(&pair.as_rule())
-    //         );
-    //         // for token in pair.tokens() {
-    //         //     println!("my token {:?}", token);
-    //         // }
-
-    //         // let inners = pair.into_inner();
-    //         // for inner in inners {
-    //         //     println!("my inner {}, type: {}", inner, type_of(&inner));
-    //         // }
-    //     }
-    // }
-
-    // #[test]
-    // // #[should_panic(expected = "Invalid seed")]
-    // fn test1() {
-    //     all_automaton_tokens(&String::from(
-    //         "{\"key\":\"SEA-739\",\"status\":{\"Open\": [1,2,3]},\"assignee\":null}",
-    //     ));
-    // }
 }

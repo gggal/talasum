@@ -3,7 +3,7 @@ use super::boolean::BOOL_AUTOMATON;
 use super::null::NULL_AUTOMATON;
 use super::number::NUMBER_AUTOMATON;
 use super::string::STRING_AUTOMATON;
-use crate::state_machine::{Automaton, AutomatonNode};
+use crate::state_machine::{json::object::OBJECT_AUTOMATON, Automaton, AutomatonNode};
 
 lazy_static! {
     static ref START_ARRAY: AutomatonNode<String> =
@@ -19,7 +19,7 @@ lazy_static! {
             (1, &ADD_NUMBER),
             (1, &ADD_STRING),
             (1, &ADD_ARRAY),
-            // (1, &ADD_OBJECT),
+            (1, &ADD_OBJECT),
         ]);
     static ref LARGE_ARRAY: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_func(|num, text| {
@@ -49,6 +49,9 @@ lazy_static! {
     static ref ADD_ARRAY: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_cycle(2)
         .set_func(|seed, text| insert_element(seed, text, &ARRAY_AUTOMATON));
+    static ref ADD_OBJECT: AutomatonNode<String> = AutomatonNode::<String>::new()
+        .set_cycle(2)
+        .set_func(|seed, text| insert_element(seed, text, &OBJECT_AUTOMATON));
     pub static ref ARRAY_AUTOMATON: Automaton<String> = Automaton::<String> {
         initial_node: &START_ARRAY,
         generator: |_| String::from("[]")
