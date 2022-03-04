@@ -12,8 +12,8 @@ lazy_static! {
             (1, &LONG_STRING),
             (5, &NON_EMPTY_STRING)
         ]);
-    static ref EMPTY_OUTPUT: AutomatonNode<String> =
-        AutomatonNode::<String>::new().set_func(|_, _| { String::from("") });
+    // static ref EMPTY_OUTPUT: AutomatonNode<String> =
+    //     AutomatonNode::<String>::new().set_func(|_, _| { String::from("") });
     static ref EMPTY_STRING: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_func(|_, _| { String::from("\"\"") });
     static ref NON_EMPTY_STRING: AutomatonNode<String> =
