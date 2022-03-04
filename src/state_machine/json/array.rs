@@ -72,7 +72,7 @@ mod tests {
     use itertools::Itertools;
 
     lazy_static! {
-        // sorted list of a 1000 fuzzed bool values
+        // sorted list of a 1000 fuzzed array values
         static ref TEST_FUZZ_VALUES: Vec<String> = (1..1000)
             .map(|i| ARRAY_AUTOMATON.generate(i))
             .sorted()
@@ -80,7 +80,7 @@ mod tests {
     }
 
     #[test]
-    fn bool_automaton_is_seedable() {
+    fn array_automaton_is_seedable() {
         assert_ne!(TEST_FUZZ_VALUES.last(), TEST_FUZZ_VALUES.first());
     }
 
