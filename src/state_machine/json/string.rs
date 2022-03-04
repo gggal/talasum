@@ -31,11 +31,7 @@ lazy_static! {
     static ref LONG_STRING: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_func(|num, _| {
             let text = String::from(&CONFIG.get_common_words()[(num % 1000) as usize]);
-            let mut joined = String::new();
-            for _ in 0..(num % 1024) {
-                joined.push_str(text.as_str());
-            }
-            format!("\"{}\"", joined)
+            format!("\"{}\"", text.repeat((num % 1024_u64) as usize))
         });
     static ref UNQUOTED_STRING: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_func(|_, text| text.replace("\"", ""));
