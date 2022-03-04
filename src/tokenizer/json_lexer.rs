@@ -9,11 +9,11 @@ pub struct JsonLexer;
 impl LexerRule for Rule {
     fn pest_to_automaton(self) -> Option<&'static Automaton<String>> {
         match &self {
-            Rule::string => Some(&super::NULL_AUTOMATON),
+            Rule::string => Some(&super::STRING_AUTOMATON),
             Rule::number => Some(&super::NUMBER_AUTOMATON),
             Rule::boolean => Some(&super::BOOL_AUTOMATON),
             Rule::object => Some(&super::BOOL_AUTOMATON),
-            Rule::array => Some(&super::BOOL_AUTOMATON),
+            Rule::array => Some(&super::ARRAY_AUTOMATON),
             Rule::null => Some(&super::NULL_AUTOMATON),
             _ => None,
         }

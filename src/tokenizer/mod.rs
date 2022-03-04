@@ -1,9 +1,10 @@
 pub mod json_lexer;
 
+use super::state_machine::json::array::ARRAY_AUTOMATON;
 use super::state_machine::json::boolean::BOOL_AUTOMATON;
 use super::state_machine::json::null::NULL_AUTOMATON;
 use super::state_machine::json::number::NUMBER_AUTOMATON;
-// use super::state_machine::json::string::STRING_AUTOMATON;
+use super::state_machine::json::string::STRING_AUTOMATON;
 use super::state_machine::Automaton;
 
 /// This module is used for PEG-parsable (e.g. text) protocols.
