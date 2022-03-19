@@ -1,4 +1,5 @@
 pub mod json_lexer;
+pub mod yaml_lexer;
 
 use super::state_machine::json::array::ARRAY_AUTOMATON;
 use super::state_machine::json::boolean::BOOL_AUTOMATON;

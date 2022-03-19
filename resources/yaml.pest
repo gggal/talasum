@@ -1,0 +1,30 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+COMMENT    = _{ "#" ~ (!NEWLINE ~ ANY)* }
+
+// global
+value = { node }
+node = { mapping | sequence | scalar  }
+indent = { " "* }
+
+// scalar
+scalar = { block_scalar | flow_scalar }
+plain_scalar = { ASCII_ALPHANUMERIC+ }
+quoted_scalar = @{"\"" ~ plain_scalar ~ "\"" | "'" ~ plain_scalar ~ "'"}
+flow_scalar = @{ plain_scalar | quoted_scalar }
+scalar_header = !{ ("|" | ">") ~ ("+" | "-")? }
+block_scalar = { scalar_header ~ "\n" ~ plain_scalar }
+
+// sequence
+sequence = { block_sequence | flow_sequence }
+flow_sequence = _{"[" ~ (flow_sequence_element ~ "," )* ~ (flow_sequence_element)? ~ "]" }
+flow_sequence_element = _{ scalar | flow_sequence | single_pair_mapping }
+block_sequence = _{ PUSH(indent) ~ block_sequence_entry ~ (PEEK ~ block_sequence_entry)* }
+block_sequence_entry = _{ "-" ~ " "+ ~ node }
+
+// mapping
+mapping = { block_mapping | flow_mapping | single_pair_mapping }
+single_pair_mapping = _{ "[" ~ scalar ~ ":" ~ scalar ~ "]" }
+flow_mapping = _{ "{" ~ ( flow_mapping_element ~ "," )* ~ (flow_mapping_element)? ~ "}" }
+flow_mapping_element = _{ scalar ~ ":" ~ ( scalar | flow_sequence | flow_mapping ) }
+block_mapping = _{ PUSH(indent) ~ block_mapping_entry ~ (PEEK ~ block_mapping_entry)* }
+block_mapping_entry = _{ scalar ~ ":" ~ node }
