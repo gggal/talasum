@@ -9,12 +9,9 @@ pub struct YamlLexer;
 impl LexerRule for Rule {
     fn pest_to_automaton(self) -> Option<&'static Automaton<String>> {
         match &self {
-            // Rule::string => Some(&super::STRING_AUTOMATON),
-            // Rule::number => Some(&super::NUMBER_AUTOMATON),
-            // Rule::boolean => Some(&super::BOOL_AUTOMATON),
-            // Rule::object => Some(&super::OBJECT_AUTOMATON),
-            // Rule::array => Some(&super::ARRAY_AUTOMATON),
-            // Rule::null => Some(&super::NULL_AUTOMATON),
+            Rule::scalar => Some(&super::BOOL_AUTOMATON),
+            Rule::mapping => Some(&super::STRING_AUTOMATON),
+            Rule::sequence => Some(&super::NUMBER_AUTOMATON),
             _ => None,
         }
     }
@@ -22,17 +19,75 @@ impl LexerRule for Rule {
 
 #[cfg(test)]
 mod tests {
+    use pest::{consumes_to, parses_to};
+
     use crate::tokenizer::AutomatonToken;
 
-    use super::{YamlLexer, Rule};
+    use super::{Rule, YamlLexer};
 
     fn tokenize_yaml_input_helper(input: &str) -> Vec<AutomatonToken> {
         super::super::tokenize_input::<YamlLexer, Rule>(input, Rule::value).unwrap()
     }
     #[test]
-    fn tokenize_scalar() {
-        // valid yaml input shouldn't cause panic
+    fn tokenizing_scalars_does_not_panic() {
+        // flow scalars
         tokenize_yaml_input_helper("a");
+        tokenize_yaml_input_helper("'a'");
+        tokenize_yaml_input_helper("\"a\"");
+
+        // block scalars
+        tokenize_yaml_input_helper("|\n a");
+        tokenize_yaml_input_helper("|\n  a");
+        tokenize_yaml_input_helper("|\n   a");
+        tokenize_yaml_input_helper("|+\n a");
+        tokenize_yaml_input_helper("|-\n a");
+        tokenize_yaml_input_helper("|1\n a #comment");
+        tokenize_yaml_input_helper(">\n a");
+        tokenize_yaml_input_helper(">2-\n a");
+        tokenize_yaml_input_helper("  |\n  a\n  b");
+    }
+
+    #[test]
+    #[should_panic]
+    fn tokenizing_ill_indented_block_scalars_panics() {
+        parses_to! {
+            parser: YamlLexer,
+            input: " |\n a",
+            rule: Rule::block_scalar,
+            tokens: [
+                block_scalar(0, 5, [])
+            ]
+        };
+    }
+
+    #[test]
+    fn tokenize_multiline_block_scalar_correctly() {
+        parses_to! {
+            parser: YamlLexer,
+            input: "|\n a\n b\n  c",
+            rule: Rule::block_scalar,
+            tokens: [
+                block_scalar(0, 11, [
+                    scalar_header(1, 1, []),
+                    literal_content(2, 11, [])
+                    ])
+            ]
+        };
+    }
+
+    #[test]
+    fn tokenize_comments_in_scalar_correctly() {
+        parses_to! {
+            parser: YamlLexer,
+            input: "| #comment\n a",
+            rule: Rule::block_scalar,
+            tokens: [
+                block_scalar(0, 13, [
+                    scalar_header(1, 1, []),
+                    literal_content(11, 13, [])
+                    ])
+            ]
+        };
     }
 
     // #[test]

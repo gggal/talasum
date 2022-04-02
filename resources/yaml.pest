@@ -1,18 +1,31 @@
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
-COMMENT    = _{ "#" ~ (!NEWLINE ~ ANY)* }
+COMMENT    = _{ WHITESPACE? ~ "#" ~ (!NEWLINE ~ ANY)* }
 
 // global
 value = { node }
 node = { mapping | sequence | scalar  }
-indent = { " "* }
+indent = _{ " "* }
+indent_nonempty = _{ " "+ }
+empty_lines = _{ NEWLINE ~ NEWLINE+ } 
 
 // scalar
 scalar = { block_scalar | flow_scalar }
 plain_scalar = { ASCII_ALPHANUMERIC+ }
 quoted_scalar = @{"\"" ~ plain_scalar ~ "\"" | "'" ~ plain_scalar ~ "'"}
 flow_scalar = @{ plain_scalar | quoted_scalar }
-scalar_header = !{ ("|" | ">") ~ ("+" | "-")? }
-block_scalar = { scalar_header ~ "\n" ~ plain_scalar }
+ind_indicator = @{ ASCII_NONZERO_DIGIT+ }
+chomp_indicator = @{ "+" | "-" }
+scalar_header = @{ ind_indicator ~ chomp_indicator | chomp_indicator ~ ind_indicator | chomp_indicator | ind_indicator? }
+literal_content = @{
+	indent_nonempty ~ plain_scalar ~ !NEWLINE? |
+	PUSH(indent_nonempty) ~ plain_scalar ~
+	(NEWLINE ~ PEEK ~ WHITESPACE* ~ plain_scalar)* 
+}
+block_scalar = ${
+    indent ~ ("|" | ">") ~ scalar_header ~ COMMENT? ~ "\n" ~ 
+    literal_content ~
+    empty_lines?
+}
 
 // sequence
 sequence = { block_sequence | flow_sequence }
