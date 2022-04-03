@@ -90,64 +90,63 @@ mod tests {
         };
     }
 
-    // #[test]
-    // fn tokenize_true_boolean() {
-    //     let result = tokenize_yaml_input_helper("true");
-    //     assert_eq!(result.len(), 1);
+    #[test]
+    fn tokenizing_sequences_does_not_panic() {
+        // flow sequences
+        tokenize_yaml_input_helper("[1, 2, 3]");
+        tokenize_yaml_input_helper("[[], [], [[], []]]");
 
-    //     assert_eq!(result[0].from, 0);
-    //     assert_eq!(result[0].to, 4);
-    // }
+        // block sequences
+        tokenize_yaml_input_helper("- a\n- b");
+        tokenize_yaml_input_helper("- a\n- - b");
+        tokenize_yaml_input_helper("- |\n a\n- b");
+        tokenize_yaml_input_helper(" - a\n -b");
+    }
 
-    // #[test]
-    // fn tokenize_false_boolean() {
-    //     let result = tokenize_yaml_input_helper("false");
-    //     assert_eq!(result.len(), 1);
+    #[test]
+    fn tokenize_scalar_block_as_sequence_element_correctly() {
+        parses_to! {
+            parser: YamlLexer,
+            input: "- |\n  a\n  b",
+            rule: Rule::block_sequence,
+            tokens: [
+                block_sequence(0, 11, [
+                block_scalar(2, 11, [
+                    scalar_header(3, 3, []),
+                    literal_content(4, 11, [])
+                    ])
+                ])
+            ]
+        };
+    }
 
-    //     assert_eq!(result[0].from, 0);
-    //     assert_eq!(result[0].to, 5);
-    // }
+    #[test]
+    fn tokenizing_mappings_does_not_panic() {
+        // flow mappings
+        tokenize_yaml_input_helper("{a: b}");
+        tokenize_yaml_input_helper("{:a, b:}");
+        tokenize_yaml_input_helper("{a, :b, }");
 
-    // #[test]
-    // fn tokenize_string() {
-    //     let result = tokenize_yaml_input_helper("\"asd\"");
-    //     assert_eq!(result.len(), 1);
+        // block mappings
+        tokenize_yaml_input_helper("a: b\nb: c");
+        tokenize_yaml_input_helper(" a: b\n b: c");
+    }
 
-    //     assert_eq!(result[0].from, 0);
-    //     assert_eq!(result[0].to, 5);
-    // }
+    #[test]
+    fn tokenize_scalar_block_as_mapping_element_correctly() {
+        parses_to! {
+            parser: YamlLexer,
+            input: "a: |\n  a\n  b",
+            rule: Rule::block_mapping,
+            tokens: [
+                block_mapping(0, 12, [
+                block_scalar(3, 12, [
+                    scalar_header(4, 4, []),
+                    literal_content(5, 12, [])
+                    ])
+                ])
+            ]
+        };
+    }
 
-    // #[test]
-    // fn tokenize_object() {
-    //     let result = tokenize_yaml_input_helper("{\"a\":1}");
-    //     assert_eq!(result.len(), 3);
-
-    //     assert_eq!(result[1].from, 1);
-    //     assert_eq!(result[1].to, 4);
-    //     assert_eq!(result[0].from, 5);
-    //     assert_eq!(result[0].to, 6);
-    //     assert_eq!(result[2].from, 0);
-    //     assert_eq!(result[2].to, 7);
-    // }
-
-    // #[test]
-    // fn tokenize_array() {
-    //     let result = tokenize_yaml_input_helper("[1,2,3]");
-    //     assert_eq!(result.len(), 4);
-
-    //     assert_eq!(result[2].from, 1);
-    //     assert_eq!(result[2].to, 2);
-    //     assert_eq!(result[1].from, 3);
-    //     assert_eq!(result[1].to, 4);
-    //     assert_eq!(result[0].from, 5);
-    //     assert_eq!(result[0].to, 6);
-    //     assert_eq!(result[3].from, 0);
-    //     assert_eq!(result[3].to, 7);
-    // }
-
-    // #[test]
-    // #[should_panic]
-    // fn fail_to_tokenize_invalid_yaml() {
-    //     tokenize_yaml_input_helper("asd");
-    // }
 }
