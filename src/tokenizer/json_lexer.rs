@@ -1,6 +1,13 @@
 use super::Automaton;
 use super::LexerRule;
 
+use crate::state_machine::json::array::ARRAY_AUTOMATON;
+use crate::state_machine::json::boolean::BOOL_AUTOMATON;
+use crate::state_machine::json::null::NULL_AUTOMATON;
+use crate::state_machine::json::number::NUMBER_AUTOMATON;
+use crate::state_machine::json::object::OBJECT_AUTOMATON;
+use crate::state_machine::json::string::STRING_AUTOMATON;
+
 #[derive(Parser)]
 //#[derive(Tokenizer)] // add a macro function that generates an alias function for parse
 #[grammar = "../resources/json.pest"]
@@ -9,12 +16,12 @@ pub struct JsonLexer;
 impl LexerRule for Rule {
     fn pest_to_automaton(self) -> Option<&'static Automaton<String>> {
         match &self {
-            Rule::string => Some(&super::STRING_AUTOMATON),
-            Rule::number => Some(&super::NUMBER_AUTOMATON),
-            Rule::boolean => Some(&super::BOOL_AUTOMATON),
-            Rule::object => Some(&super::OBJECT_AUTOMATON),
-            Rule::array => Some(&super::ARRAY_AUTOMATON),
-            Rule::null => Some(&super::NULL_AUTOMATON),
+            Rule::string => Some(&STRING_AUTOMATON),
+            Rule::number => Some(&NUMBER_AUTOMATON),
+            Rule::boolean => Some(&BOOL_AUTOMATON),
+            Rule::object => Some(&OBJECT_AUTOMATON),
+            Rule::array => Some(&ARRAY_AUTOMATON),
+            Rule::null => Some(&NULL_AUTOMATON),
             _ => None,
         }
     }

@@ -14,14 +14,14 @@ use std::collections::{BTreeMap, BTreeSet};
 /// It relies on a PRG internally because the fuzzing process should be traceable and reproducible at all times.
 /// If one needs true randomness, one needs to generate truly random seeds to pass to one's
 /// Mutator.
-pub struct Mutator {
+pub struct Mutator<'a> {
     seeder: Box<dyn Randomizer>,
-    tokens: Vec<AutomatonToken<'static>>,
-    input: &'static str,
+    tokens: Vec<AutomatonToken<'a>>,
+    input: &'a str,
     config: Box<dyn Configurable>,
 }
 
-impl Mutator {
+impl <'a> Mutator<'a> {
     /// Creates a Mutator instance based on the following input:
     /// - `seeder` - will be used for generating random mutations to the input
     /// - `input` - valid input as per the protocol's specification
@@ -31,13 +31,13 @@ impl Mutator {
     /// Result will be [`std::option::Option::None`] if the input is invalid as per the underlying
     /// protocol grammar, e.g. "{1}" is not a valid JSON input, hence cannot
     /// be fuzzed.
-    pub(crate) fn new<P: Parser<R>, R: 'static + LexerRule>(
+    pub(crate) fn new<P: Parser<R>, R: 'a + LexerRule>(
         seeder: Box<dyn Randomizer>,
-        input: &'static str,
+        input: &'a str,
         rule: R,
         config: Box<dyn Configurable>,
     ) -> Option<Self> {
-        tokenize_input::<P, R>(input, rule).map(|tokens| Self {
+        tokenize_input::<'a, P, R>(input, rule).map(|tokens| Self {
             seeder,
             tokens,
             input,
@@ -148,7 +148,7 @@ impl Mutator {
     }
 }
 
-impl Iterator for Mutator {
+impl <'a> Iterator for Mutator<'a> {
     type Item = String;
 
     /// Computes a new fuzz value.
@@ -172,7 +172,7 @@ mod tests {
     use crate::tokenizer::json_lexer::{JsonLexer, Rule};
     use std::collections::BTreeMap;
 
-    fn get_mutator_helper(seed: u64, input: &'static str) -> Mutator {
+    fn get_mutator_helper(seed: u64, input: &str) -> Mutator {
         Mutator::new::<JsonLexer, Rule>(
             Box::new(PRandomizer::new(seed)),
             input,
@@ -184,7 +184,7 @@ mod tests {
 
     fn get_mocked_mutator_helper(
         seed: u64,
-        input: &'static str,
+        input: &str,
         config: Box<dyn Configurable>,
     ) -> Mutator {
         Mutator::new::<JsonLexer, Rule>(

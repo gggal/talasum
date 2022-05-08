@@ -1,12 +1,6 @@
 pub mod json_lexer;
 pub mod yaml_lexer;
 
-use super::state_machine::json::array::ARRAY_AUTOMATON;
-use super::state_machine::json::boolean::BOOL_AUTOMATON;
-use super::state_machine::json::null::NULL_AUTOMATON;
-use super::state_machine::json::number::NUMBER_AUTOMATON;
-use super::state_machine::json::object::OBJECT_AUTOMATON;
-use super::state_machine::json::string::STRING_AUTOMATON;
 use super::state_machine::Automaton;
 
 /// This module is used for PEG-parsable (e.g. text) protocols.
@@ -47,8 +41,8 @@ fn pest_pair_to_token<'a, T: 'a + LexerRule>(
 
 /// Produces a list of (u32, u32, String) element, each representing
 /// a separate token, as defined by the state_machine module
-pub fn tokenize_input<P: Parser<R>, R: 'static + LexerRule>(
-    text: &str,
+pub fn tokenize_input<'a, P: Parser<R>, R: 'a + LexerRule>(
+    text: &'a str,
     parent_rule: R,
 ) -> Option<Vec<AutomatonToken>> {
     if text.is_empty() {
@@ -63,12 +57,12 @@ pub fn tokenize_input<P: Parser<R>, R: 'static + LexerRule>(
 
 /// Iterates through all pairs in a Pest tree and generates a list of tokens
 /// in an order such that each element doesn't depend on another after it
-fn tokenize_peg_tree<T: 'static + LexerRule>(
-    tree_root: pest::iterators::Pairs<T>,
+fn tokenize_peg_tree<'a, T: 'a + LexerRule>(
+    tree_root: pest::iterators::Pairs<'a, T>,
 ) -> Vec<AutomatonToken> {
     tree_root
         .flatten()
-        .filter_map(|aut| pest_pair_to_token(&aut))
+        .filter_map(|aut| pest_pair_to_token::<T>(&aut))
         .rev()
         .collect()
 }
@@ -81,14 +75,17 @@ mod tests {
     pub struct MockLexer;
     use crate::tokenizer::AutomatonToken;
 
+    use crate::state_machine::json::boolean::BOOL_AUTOMATON;
+    use crate::state_machine::json::null::NULL_AUTOMATON;
+
     use super::Automaton;
     use pest::Parser;
 
     impl super::LexerRule for Rule {
         fn pest_to_automaton(self) -> Option<&'static Automaton<String>> {
             match &self {
-                Rule::inner => Some(&super::BOOL_AUTOMATON),
-                Rule::nested => Some(&super::NULL_AUTOMATON),
+                Rule::inner => Some(&BOOL_AUTOMATON),
+                Rule::nested => Some(&NULL_AUTOMATON),
                 _ => None, // not every Pest token will have Automaton representation
             }
         }

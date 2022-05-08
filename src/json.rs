@@ -110,7 +110,7 @@ pub fn object(seed: u64) -> Generator<String> {
 /// }
 ///
 /// ```
-pub fn mutate(input: &'static str, seed: u64) -> Option<Mutator> {
+pub fn mutate(input: &str, seed: u64) -> Option<Mutator> {
     Mutator::new::<JsonLexer, Rule>(
         Box::new(PRandomizer::new(seed)),
         input,
