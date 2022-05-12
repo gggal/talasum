@@ -2,7 +2,7 @@ use mockall::automock;
 use std::{
     fs::File,
     io::{BufRead, BufReader},
-    sync::RwLock,
+    sync::RwLock
 };
 
 /// Internal representation of the global configuration
@@ -81,16 +81,14 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Self {
-        let mut fields = config::Config::default();
-        fields
-            .merge(config::File::with_name(CONFIG_FILE_NAME))
-            .expect("Couldn't load config file");
-        fields
-            .merge(config::Environment::with_prefix(ENV_VARS_PREFIX))
-            .expect("Couldn't load config from env variables");
+        let fields = config::Config::builder()
+        .add_source(config::File::with_name(CONFIG_FILE_NAME))
+        .add_source(config::Environment::with_prefix(ENV_VARS_PREFIX))
+        .build()
+        .unwrap();
 
         let inner = fields
-            .try_into::<ConfigFields>()
+            .try_deserialize::<ConfigFields>()
             .expect("Couldn't deserialize config");
 
         let input = File::open(COMMON_WORDS_FILE).expect("Couldn't load common words file");
