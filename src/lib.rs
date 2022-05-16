@@ -1,14 +1,14 @@
-//! Magi is a library for protocol fuzzing. Currently the supported protocols
+//! talasum is a library for protocol fuzzing. Currently the supported protocols
 //! are JSON and YAML.
 //! It supports both generation-based and mutation-based fuzzing.
 //! For generation-based fuzzing one needs to specify a protocol <-> type
 //! pair, e.g. the number type of the JSON protocol.
 //! For protocol-based fuzzing one needs to provide a valid JSON/YAML document.
 //!
-//! Magi's fuzzing algorithm understands the underlying protocols and can
+//! talasum's fuzzing algorithm understands the underlying protocols and can
 //! effectively process nested input.
 //!
-//! Magi is designed to be used primarily for security testing, hence
+//! talasum is designed to be used primarily for security testing, hence
 //! it performs techniques like shellcode injection, sql injection and more,
 //! as part of the fuzzing process. This behavior is configurable and can
 //! be disabled by TODO.

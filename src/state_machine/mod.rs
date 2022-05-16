@@ -108,7 +108,7 @@ impl AutomatonNode<String> {
     }
 }
 
-/// Magi automatons are finite state machines with a predefined set of states and edges.
+/// talasum automatons are finite state machines with a predefined set of states and edges.
 /// Each state represents an unfinished fuzz result. Each edge represents an operation
 /// to be performed on said result. The decision of what is the next edge is performed by
 /// the state decision function that takes a seed (int sequence) and based on it, it generates

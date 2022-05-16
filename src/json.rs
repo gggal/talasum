@@ -14,7 +14,7 @@ use crate::tokenizer::json_lexer::{JsonLexer, Rule};
 ///
 /// # Examples
 /// ```rust
-/// use magi::json;
+/// use talasum::json;
 ///
 /// for fuzzed in json::number(1234).take(10) {
 ///     println!("New number value: {}", fuzzed);
@@ -28,7 +28,7 @@ pub fn number(seed: u64) -> Generator<String> {
 ///
 /// # Examples
 /// ```rust
-/// use magi::json;
+/// use talasum::json;
 ///
 /// for fuzzed in json::boolean(1234).take(10) {
 ///     println!("New boolean value: {}", fuzzed);
@@ -42,7 +42,7 @@ pub fn boolean(seed: u64) -> Generator<String> {
 ///
 /// # Examples
 /// ```rust
-/// use magi::json;
+/// use talasum::json;
 ///
 /// for fuzzed in json::null(1234).take(10) {
 ///     println!("New null value: {}", fuzzed);
@@ -56,7 +56,7 @@ pub fn null(seed: u64) -> Generator<String> {
 ///
 /// # Examples
 /// ```rust
-/// use magi::json;
+/// use talasum::json;
 ///
 /// for fuzzed in json::string(1234).take(10) {
 ///     println!("New string value: {}", fuzzed);
@@ -70,7 +70,7 @@ pub fn string(seed: u64) -> Generator<String> {
 ///
 /// # Examples
 /// ```rust
-/// use magi::json;
+/// use talasum::json;
 ///
 /// for fuzzed in json::array(1234).take(10) {
 ///     println!("New array value: {}", fuzzed);
@@ -84,7 +84,7 @@ pub fn array(seed: u64) -> Generator<String> {
 ///
 /// # Examples
 /// ```rust
-/// use magi::json;
+/// use talasum::json;
 ///
 /// for fuzzed in json::object(1234).take(10) {
 ///     println!("New object value: {}", fuzzed);
@@ -98,7 +98,7 @@ pub fn object(seed: u64) -> Generator<String> {
 ///
 /// # Examples
 /// ```rust
-/// use magi::json;
+/// use talasum::json;
 ///
 /// match json::mutate("{\"a\": 123, \"b\": [null, true, \"c\"]}", 1234) {
 ///     Some(mutator) => {

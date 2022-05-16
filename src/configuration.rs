@@ -68,7 +68,7 @@ pub trait Configurable {
 }
 
 const CONFIG_FILE_NAME: &str = "Config.toml";
-const ENV_VARS_PREFIX: &str = "magi";
+const ENV_VARS_PREFIX: &str = "talasum";
 const COMMON_WORDS_FILE: &str = "resources/misc/most_common_words.txt";
 
 /// An entrypoint to the global configuration -

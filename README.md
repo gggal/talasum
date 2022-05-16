@@ -1,8 +1,8 @@
 ## Summary
 
-Magi is a protocol-aware fuzzing library, capable of both mutation and generation fuzzing. Its aim is to be a zero-cost abstraction universal fuzzer that can be used for any kind of protocol - binary or textual.
+Talasum is a protocol-aware fuzzing library, capable of both mutation and generation fuzzing. Its aim is to be a zero-cost abstraction universal fuzzer that can be used for any kind of protocol - binary or textual.
 
-Regardless fuzzing type and protocol, a seed needs to be provided (alongside the input for mutation fuzzing). Based on it Magi generates sequences of pseudo-random fuzzed values.
+Regardless fuzzing type and protocol, a seed needs to be provided (alongside the input for mutation fuzzing). Based on it Talasum generates sequences of pseudo-random fuzzed values.
 
 
 ## Supported protocols
@@ -23,12 +23,12 @@ and plans are in place for the following:
 1. Add to Cargo.toml:
     ```
     [dependencies]
-    magi = "0.1.0"
+    talasum = "0.1.0"
     ```
 
 2. Generate random input
     ```rust
-    use magi::json;
+    use talasum::json;
     
     let seed = 1234;
     for fuzzed in json::boolean(seed).take(10) {
@@ -39,7 +39,7 @@ and plans are in place for the following:
 
 3. Mutate user-provided input
     ```rust
-    use magi::json;
+    use talasum::json;
     
     let seed = 1234;
     match json::mutate(
@@ -65,7 +65,7 @@ There are two measurements the user can configure in order to control the scale 
 
     Supported values are integers from 1 to 100 (incl), 1 being the min possible value and 100 being the max possible value. **The default value is 50.**
 
-    One can configure it by passing a MAGI_HORIZONTAL_RANDOMNESS_COEF environment variable.
+    One can configure it by passing a TALASUM_HORIZONTAL_RANDOMNESS_COEF environment variable.
 
 2. Vertical fuzzing coefficient
    
@@ -75,4 +75,4 @@ There are two measurements the user can configure in order to control the scale 
 
     Supported values are integers from 1 to 100 (incl), 1 being the min possible value and 100 being the max possible value. **The default value is 50.**
 
-    One can configure it by passing a MAGI_VERTICAL_RANDOMNESS_COEF environment variable.
+    One can configure it by passing a TALASUM_VERTICAL_RANDOMNESS_COEF environment variable.
