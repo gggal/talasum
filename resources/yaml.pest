@@ -2,42 +2,118 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 COMMENT    = _{ WHITESPACE? ~ "#" ~ (!NEWLINE ~ ANY)* }
 
 // global
-value = { node }
-node = { mapping | sequence | scalar  }
-indent = _{ " "* }
-indent_nonempty = _{ " "+ }
-empty_lines = _{ NEWLINE ~ NEWLINE+ } 
+value = @{ SOI ~ stream ~ EOI }
+node = { mapping | sequence | scalar | alias | "" }
+nested_node = { nested_mapping | nested_sequence | scalar | alias | "" }
+flow_node = { flow_mapping | flow_sequence | implicit_key_scalar | alias }
+indent = ${ " "* }
+indent_nonempty = ${ " "+ }
+spaces = ${ (" " | "\t" )* }
+empty_lines = _{ NEWLINE ~ NEWLINE+ }
+tag = ${"!" ~ "!"? ~ ASCII_ALPHANUMERIC+ ~ "!"? }
+anchor = ${ "&" ~ ASCII_ALPHANUMERIC+ }
+alias = ${ tag ~ spaces ~ "*" ~ ASCII_ALPHANUMERIC+ | "*" ~ ASCII_ALPHANUMERIC+ }
+prefix = _{ tag ~ anchor | anchor ~ tag | tag | anchor }
+directive = ${ "%" ~ ANY+ ~ NEWLINE }
+directive_end_marker = !{ "---" }
+document_end_marker = !{ "..." }
+document = !{ 
+    directive* ~ directive_end_marker ~ node ~ document_end_marker? | 
+    node ~ document_end_marker
+}
+stream = !{ document+ ~ node | node }
 
 // scalar
-scalar = { block_scalar | flow_scalar }
-plain_scalar = @{ ASCII_ALPHANUMERIC+ }
-quoted_scalar = @{"\"" ~ plain_scalar ~ "\"" | "'" ~ plain_scalar ~ "'"}
+scalar = { ( 
+	prefix ~ spaces ~ block_scalar | 
+    prefix ~ spaces ~  flow_scalar | 
+    block_scalar |
+    flow_scalar 
+) ~ COMMENT? }
+// map values etc.
+implicit_key_scalar = { ( 
+	prefix ~ spaces ~ block_scalar | 
+    prefix ~ spaces ~  implicit_key_flow_scalar | 
+    block_scalar |
+    implicit_key_flow_scalar 
+) ~ COMMENT? }
+// same as scalar but inside flow collections
+flow_collection_scalar = { ( 
+	prefix ~ spaces ~ block_scalar | 
+    prefix ~ spaces ~ flow_collection_flow_scalar | 
+    block_scalar |
+    flow_collection_flow_scalar 
+) ~ COMMENT? }
+indicator_char = @{
+	"#" | "[" | "]" | "," | "-" | "?" | ":" | "{" | "}" |
+    "&" | "*" | "!" | "|" | ">" | "\"" | "'" | "%" | "@"
+}
+plain_scalar = @{ 
+	((":" | "-" | "?") ~ !WHITESPACE | !indicator_char ~ ANY) ~ 
+    ( !(" #" | ":" ~ WHITESPACE | "\n") ~ ANY )* 
+}
+// same as plain scalar but inside flow collections
+flow_collection_plain_scalar = @{ 
+	((":" | "-" | "?") ~ !WHITESPACE | !indicator_char ~ ANY) ~ 
+    ( !(" #" | ":" ~ WHITESPACE | "{" | "}" | "[" | "]" | ",") ~ ANY )* 
+}
+// same as plain scalar but inside implicit keys
+implicit_key_plain_scalar = @{ 
+	((":" | "-" | "?") ~ !WHITESPACE | !(indicator_char | NEWLINE) ~ ANY) ~ 
+    ( !("\n" | " #" | ":" ~ WHITESPACE | "{" | "}" | "[" | "]" | ",") ~ ANY )* 
+}
+quoted_scalar = @{"\"" ~ ("\\\"" | !"\"" ~ ANY)* ~ "\"" | "'" ~ (!"'" ~ ANY | "''")* ~ "'"}
 flow_scalar = @{ plain_scalar | quoted_scalar }
+// same as flow scalar but inside flow collections
+flow_collection_flow_scalar = @{ flow_collection_plain_scalar | quoted_scalar }
+// scalars without newlines
+implicit_key_flow_scalar = @{ implicit_key_plain_scalar | quoted_scalar }
 ind_indicator = @{ ASCII_NONZERO_DIGIT+ }
 chomp_indicator = @{ "+" | "-" }
 scalar_header = @{ ind_indicator ~ chomp_indicator | chomp_indicator ~ ind_indicator | chomp_indicator | ind_indicator? }
 literal_content = @{
-	PUSH(indent_nonempty) ~ plain_scalar ~
-	(NEWLINE ~ PEEK ~ WHITESPACE* ~ plain_scalar)* ~ !POP |
-    indent_nonempty ~ plain_scalar
+	PUSH(indent_nonempty) ~ (!"\n" ~ ANY)+ ~
+	(NEWLINE ~ PEEK_ALL ~ WHITESPACE* ~ (!"\n" ~ ANY)+ | &"\n\n" ~ "\n" )* ~ DROP |
+    indent_nonempty ~ (!"\n" ~ ANY)+
 }
 block_scalar = ${
     indent ~ ("|" | ">") ~ scalar_header ~ COMMENT? ~ "\n" ~ 
-    literal_content ~
-    empty_lines?
+    literal_content
 }
 
 // sequence
-sequence = { block_sequence | flow_sequence }
-flow_sequence = {"[" ~ (flow_sequence_element ~ "," )* ~ (flow_sequence_element)? ~ "]" }
-flow_sequence_element = _{ scalar | flow_sequence | single_pair_mapping }
-block_sequence = @{ PUSH(indent) ~ block_sequence_entry ~ (NEWLINE ~ PEEK ~ block_sequence_entry)* ~ POP? }
-block_sequence_entry = @{ "-" ~ " "+ ~ node }
+sequence = !{ prefix ~ block_sequence | prefix ~ flow_sequence | block_sequence | flow_sequence }
+nested_sequence = !{ prefix ~ nested_block_sequence | prefix ~ flow_sequence | nested_block_sequence | flow_sequence }
+flow_sequence = !{"[" ~ (flow_sequence_element ~ "," )* ~ (flow_sequence_element)? ~ "]" }
+flow_sequence_element = _{ singleton_mapping | flow_collection_scalar | flow_sequence }
+block_sequence = @{ PUSH(indent) ~ block_sequence_entry ~ (NEWLINE ~ PEEK_ALL ~ block_sequence_entry)* ~ DROP }
+nested_block_sequence = @{ PUSH(indent) ~ " " ~ block_sequence_entry ~ (NEWLINE ~ PEEK_ALL ~ " " ~ block_sequence_entry)* ~ DROP }
+block_sequence_entry = @{ "-" ~ (NEWLINE* ~ " ")+ ~ node }
 
 // mapping
-mapping = { block_mapping | flow_mapping | single_pair_mapping }
-single_pair_mapping = _{ "[" ~ scalar ~ ":" ~ scalar ~ "]" }
-flow_mapping = _{ "{" ~ ( flow_mapping_element ~ "," )* ~ (flow_mapping_element)? ~ "}" }
-flow_mapping_element = _{ "?"? ~ (scalar? ~ ":" ~ ( scalar | flow_sequence | flow_mapping )? | scalar | "") }
-block_mapping = @{ PUSH(indent) ~ block_mapping_entry ~ (NEWLINE ~ PEEK ~ block_mapping_entry)* ~ POP? }
-block_mapping_entry = @{ scalar ~ indent ~ ":" ~ indent ~ node }
+mapping = !{
+    prefix ~ block_mapping | prefix ~ flow_mapping |
+    block_mapping | flow_mapping
+}
+nested_mapping = !{
+    prefix ~ nested_block_mapping | prefix ~ flow_mapping |
+    nested_block_mapping | flow_mapping
+}
+singleton_mapping = _{ 
+	"?" ~ (flow_collection_scalar? ~ ":" ~ ( flow_collection_scalar | flow_sequence | flow_mapping )? | flow_collection_scalar) |
+    implicit_key_plain_scalar? ~ ":" ~ ( implicit_key_plain_scalar | flow_sequence | flow_mapping )?
+}
+flow_mapping = !{ "{" ~ ( flow_mapping_element ~ "," )* ~ (flow_mapping_element)? ~ "}" }
+flow_mapping_element = _{ 
+	"?" ~ (flow_collection_scalar? ~ ":" ~ ( flow_collection_scalar | flow_sequence | flow_mapping )? | flow_collection_scalar | "") |
+    implicit_key_plain_scalar? ~ ":" ~ ( implicit_key_plain_scalar | flow_sequence | flow_mapping )? | implicit_key_plain_scalar | ""
+}
+block_mapping = @{ PUSH(indent) ~ block_mapping_entry ~ (NEWLINE ~ PEEK_ALL ~ block_mapping_entry)* ~ DROP }
+nested_block_mapping = @{ PUSH(indent) ~ " " ~ block_mapping_entry ~ (NEWLINE ~ PEEK_ALL ~ " " ~ block_mapping_entry)* ~ DROP }
+block_mapping_entry = @{
+	"?" ~ PUSH(indent) ~ nested_node ~ indent ~ NEWLINE ~ DROP ~ 
+    ":" ~ PUSH(indent) ~ node ~ DROP |
+    implicit_key_plain_scalar ~ spaces ~ ":" ~ spaces ~ flow_node |
+    implicit_key_plain_scalar ~ spaces ~ ":" ~ spaces ~ (prefix ~ spaces)? ~ COMMENT? ~ NEWLINE ~
+    indent ~ node
+}

@@ -2,6 +2,7 @@ use crate::randomness::{PRandomizer, Randomizer};
 pub mod helper;
 pub mod json;
 pub mod weights;
+pub mod yaml;
 
 // Transformation is an operation to be performed on a value as it's moved
 // through the automaton

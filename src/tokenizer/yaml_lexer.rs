@@ -1,6 +1,9 @@
 use super::Automaton;
 use super::LexerRule;
 
+use crate::state_machine::yaml::indentation::INDENTATION_AUTOMATON;
+use crate::state_machine::yaml::flow_scalar::FLOW_SCALAR_AUTOMATON;
+
 #[derive(Parser)]
 //#[derive(Tokenizer)] // add a macro function that generates an alias function for parse
 #[grammar = "../resources/yaml.pest"]
@@ -9,9 +12,12 @@ pub struct YamlLexer;
 impl LexerRule for Rule {
     fn pest_to_automaton(self) -> Option<&'static Automaton<String>> {
         match &self {
-            Rule::scalar => Some(&super::BOOL_AUTOMATON),
-            Rule::mapping => Some(&super::STRING_AUTOMATON),
-            Rule::sequence => Some(&super::NUMBER_AUTOMATON),
+            Rule::indent => Some(&INDENTATION_AUTOMATON),
+            Rule::indent_nonempty => Some(&INDENTATION_AUTOMATON),
+            Rule::spaces => Some(&INDENTATION_AUTOMATON),
+            Rule::flow_scalar => Some(&FLOW_SCALAR_AUTOMATON),
+            // Rule::mapping => Some(&super::STRING_AUTOMATON),
+            // Rule::sequence => Some(&super::NUMBER_AUTOMATON),
             _ => None,
         }
     }
@@ -61,31 +67,27 @@ mod tests {
     }
 
     #[test]
-    fn tokenize_multiline_block_scalar_correctly() {
+    #[should_panic]
+    fn tokenizing_unescaped_chars_in_double_quoted_literal_panics() {
         parses_to! {
             parser: YamlLexer,
-            input: "|\n a\n b\n  c",
-            rule: Rule::block_scalar,
+            input: "\"a\"b\"",
+            rule: Rule::scalar,
             tokens: [
-                block_scalar(0, 11, [
-                    scalar_header(1, 1, []),
-                    literal_content(2, 11, [])
-                    ])
+                block_scalar(0, 5, [])
             ]
         };
     }
 
     #[test]
-    fn tokenize_comments_in_scalar_correctly() {
+    #[should_panic]
+    fn tokenizing_unescaped_chars_in_single_quoted_literal_panics() {
         parses_to! {
             parser: YamlLexer,
-            input: "| #comment\n a",
-            rule: Rule::block_scalar,
+            input: "'a'b'",
+            rule: Rule::scalar,
             tokens: [
-                block_scalar(0, 13, [
-                    scalar_header(1, 1, []),
-                    literal_content(11, 13, [])
-                    ])
+                block_scalar(0, 5, [])
             ]
         };
     }
@@ -100,24 +102,7 @@ mod tests {
         tokenize_yaml_input_helper("- a\n- b");
         tokenize_yaml_input_helper("- a\n- - b");
         tokenize_yaml_input_helper("- |\n a\n- b");
-        tokenize_yaml_input_helper(" - a\n -b");
-    }
-
-    #[test]
-    fn tokenize_scalar_block_as_sequence_element_correctly() {
-        parses_to! {
-            parser: YamlLexer,
-            input: "- |\n  a\n  b",
-            rule: Rule::block_sequence,
-            tokens: [
-                block_sequence(0, 11, [
-                block_scalar(2, 11, [
-                    scalar_header(3, 3, []),
-                    literal_content(4, 11, [])
-                    ])
-                ])
-            ]
-        };
+        tokenize_yaml_input_helper(" - a\n - b");
     }
 
     #[test]
@@ -129,23 +114,148 @@ mod tests {
 
         // block mappings
         tokenize_yaml_input_helper("a: b\nb: c");
-        tokenize_yaml_input_helper(" a: b\n b: c");
+        // tokenize_yaml_input_helper(" a: b\n b: c");
     }
 
     #[test]
-    fn tokenize_scalar_block_as_mapping_element_correctly() {
-        parses_to! {
-            parser: YamlLexer,
-            input: "a: |\n  a\n  b",
-            rule: Rule::block_mapping,
-            tokens: [
-                block_mapping(0, 12, [
-                block_scalar(3, 12, [
-                    scalar_header(4, 4, []),
-                    literal_content(5, 12, [])
-                    ])
-                ])
-            ]
-        };
+    fn tokenizing_documents_does_not_panic() {
+        tokenize_yaml_input_helper("---");
+        tokenize_yaml_input_helper("...");
+        tokenize_yaml_input_helper(
+            "---
+        # some comment",
+        );
+        tokenize_yaml_input_helper(
+            "---
+        # some comment
+        ",
+        );
+    }
+
+    #[test]
+    fn tokenizing_tags_does_not_panic() {
+        tokenize_yaml_input_helper("!!str asd");
+        tokenize_yaml_input_helper("!!map &a2 baz : *a1");
+        tokenize_yaml_input_helper("!!str baz : !!str *a1");
+        tokenize_yaml_input_helper("asd : !!str as");
+        tokenize_yaml_input_helper(
+            "sequence: !!seq
+        - entry",
+        );
+        tokenize_yaml_input_helper(
+            "!!str |-
+        'String: just a theory.'",
+        );
+    }
+
+    #[test]
+    fn tokenizing_anchors_does_not_panic() {
+        tokenize_yaml_input_helper("---");
+    }
+
+    // some examples from the YAML specification
+
+    #[test]
+    fn example_2_3_works() {
+        tokenize_yaml_input_helper(
+            r"american:
+- Boston Red Sox
+- Detroit Tigers
+- New York Yankees
+national:
+- New York Mets
+- Chicago Cubs
+- Atlanta Braves",
+        );
+    }
+
+    #[test]
+    fn example_2_4_works() {
+        tokenize_yaml_input_helper(
+            r"-
+ name: Mark McGwire
+ hr:   65
+ avg:  0.278
+-
+ name: Sammy Sosa
+ hr:   63
+ avg:  0.288",
+        );
+    }
+
+    //     #[test]
+    //     fn example_2_11_works() {
+    //         tokenize_yaml_input_helper(
+    //             r"? - Detroit Tigers
+    //   - Chicago cubs
+    // : - 2001-07-23
+
+    // ? [ New York Yankees,
+    //     Atlanta Braves ]
+    // : [ 2001-07-02, 2001-08-12,
+    //     2001-08-14 ]",
+    //         );
+    //     }
+
+    //     #[test]
+    //     fn nested_mapping() {
+    //         tokenize_yaml_input_helper(
+    //             r"? ? a
+    //   : v
+    // : a",
+    //         );
+    //     }
+
+    #[test]
+    fn example_7_20_works() {
+        tokenize_yaml_input_helper(
+            r"[
+        ? foo
+         bar : baz
+        ]",
+        );
+    }
+
+    // #[test]
+    // fn example_7_21_works() {
+    //     tokenize_yaml_input_helper(r"- [ YAML : separate ]
+    //     - [ : empty key entry ]
+    //     - [ {JSON: like}:adjacent ]");
+    // }
+
+    #[test]
+    #[should_panic]
+    fn example_7_22_works() {
+        tokenize_yaml_input_helper(
+            r#"[ foo
+        bar: invalid,
+        "foo_...>1K characters..._bar": invalid ]"#,
+        );
+    }
+
+    #[test]
+    fn example_7_23_works() {
+        tokenize_yaml_input_helper(
+            "- [ a, b ]
+- { a: b }
+- \"a\"
+- 'b'
+- c",
+        );
+    }
+
+    #[test]
+    fn example_8_1_works() {
+        tokenize_yaml_input_helper(
+            "- | # Empty header
+ literal
+- >1 # Indentation indicator
+  folded
+- |+ # Chomping indicator
+ keep
+ 
+- >1- # Both indicators
+  strip",
+        );
     }
 }

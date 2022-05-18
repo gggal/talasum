@@ -2,7 +2,7 @@ use mockall::automock;
 use std::{
     fs::File,
     io::{BufRead, BufReader},
-    sync::RwLock
+    sync::RwLock,
 };
 
 /// Internal representation of the global configuration
@@ -82,10 +82,10 @@ pub struct Config {
 impl Config {
     pub fn new() -> Self {
         let fields = config::Config::builder()
-        .add_source(config::File::with_name(CONFIG_FILE_NAME))
-        .add_source(config::Environment::with_prefix(ENV_VARS_PREFIX))
-        .build()
-        .unwrap();
+            .add_source(config::File::with_name(CONFIG_FILE_NAME))
+            .add_source(config::Environment::with_prefix(ENV_VARS_PREFIX))
+            .build()
+            .unwrap();
 
         let inner = fields
             .try_deserialize::<ConfigFields>()

@@ -136,6 +136,40 @@ pub fn insert_random_encoded_char_in_string(seed: u64, s: &str) -> String {
     )
 }
 
+/// Picks a random character from a string and puts it at
+/// random position in `s`.
+pub fn insert_random_char_from_range_in_string(seed: u64, s: &str, chars: &str) -> String {
+    insert_string_in_string(seed, s, &pick_random_char(seed, chars))
+}
+
+pub fn pick_random_char(seed: u64, s: &str) -> String {
+    match random_position_in_string(seed, s) {
+        None => String::new(),
+        Some(pick) => String::from(
+            s.get(pick..pick + 1)
+                .expect("Picked position was out of bounds."),
+        ),
+    }
+}
+
+/// Replaces a random occurrence of substring with another substring
+pub fn replace_random_occurrence(
+    mut original: String,
+    to_replace: &str,
+    replace_with: &str,
+    seed: u64,
+) -> String {
+    // TODO wouldn't work for non-utf8
+    let replace_possibilities: Vec<(usize, &str)> = original.rmatch_indices(to_replace).collect();
+    if replace_possibilities.len() != 0 {
+        let (choice, _) =
+            replace_possibilities[(seed % replace_possibilities.len() as u64) as usize];
+        let to_replace_length = to_replace.len();
+        original.replace_range(choice..choice + (to_replace_length), replace_with);
+    }
+    original
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -265,5 +299,29 @@ mod tests {
     #[test]
     fn pick_surrogate_codepoint_from_larger_number() {
         assert_eq!(get_surrogate(1 << 20), "\\ud800");
+    }
+
+    #[test]
+    fn replace_single_occurrence_in_string() {
+        assert_eq!(
+            replace_random_occurrence(String::from("asf"), "a", "b", 1),
+            "bsf"
+        );
+    }
+
+    #[test]
+    fn replace_non_first_occurrence_in_string() {
+        assert_eq!(
+            replace_random_occurrence(String::from("asfasd"), "a", "b", 2),
+            "asfbsd"
+        );
+    }
+
+    #[test]
+    fn replace_occurrence_not_in_string() {
+        assert_eq!(
+            replace_random_occurrence(String::from("asf"), "c", "b", 1),
+            "asf"
+        );
     }
 }

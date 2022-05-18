@@ -21,7 +21,7 @@ pub struct Mutator<'a> {
     config: Box<dyn Configurable>,
 }
 
-impl <'a> Mutator<'a> {
+impl<'a> Mutator<'a> {
     /// Creates a Mutator instance based on the following input:
     /// - `seeder` - will be used for generating random mutations to the input
     /// - `input` - valid input as per the protocol's specification
@@ -148,7 +148,7 @@ impl <'a> Mutator<'a> {
     }
 }
 
-impl <'a> Iterator for Mutator<'a> {
+impl<'a> Iterator for Mutator<'a> {
     type Item = String;
 
     /// Computes a new fuzz value.
@@ -182,11 +182,7 @@ mod tests {
         .unwrap()
     }
 
-    fn get_mocked_mutator_helper(
-        seed: u64,
-        input: &str,
-        config: Box<dyn Configurable>,
-    ) -> Mutator {
+    fn get_mocked_mutator_helper(seed: u64, input: &str, config: Box<dyn Configurable>) -> Mutator {
         Mutator::new::<JsonLexer, Rule>(
             Box::new(PRandomizer::new(seed)),
             input,
