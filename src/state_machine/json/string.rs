@@ -24,14 +24,14 @@ lazy_static! {
             (1, &REPLACE_CHAR),
         ]);
     static ref SINGLE_QUOTED_STRING: AutomatonNode<String> =
-        AutomatonNode::<String>::new().set_func(|_, text| text.replace("\"", "\'"));
+        AutomatonNode::<String>::new().set_func(|_, text| text.replace('\"', "\'"));
     static ref LONG_STRING: AutomatonNode<String> =
         AutomatonNode::<String>::new().set_func(|num, _| {
             let text = String::from(&CONFIG.get_common_words()[(num % 1000) as usize]);
             format!("\"{}\"", text.repeat((num % 1024_u64) as usize))
         });
     static ref UNQUOTED_STRING: AutomatonNode<String> =
-        AutomatonNode::<String>::new().set_func(|_, text| text.replace("\"", ""));
+        AutomatonNode::<String>::new().set_func(|_, text| text.replace('\"', ""));
     static ref ADD_VALID_UNESCAPED_CHAR: AutomatonNode<String> = AutomatonNode::<String>::new()
         .set_func(|seed, text| { insert_random_char_in_string(seed, &text) })
         .set_cycle(2);

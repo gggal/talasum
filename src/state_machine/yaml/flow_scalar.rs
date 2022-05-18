@@ -1,5 +1,5 @@
 use super::super::helper::*;
-use crate::state_machine::{Automaton, AutomatonNode, json::string::STRING_AUTOMATON};
+use crate::state_machine::{json::string::STRING_AUTOMATON, Automaton, AutomatonNode};
 
 lazy_static! {
     static ref START_FLOW_SCALAR: AutomatonNode<String> =
@@ -13,7 +13,7 @@ lazy_static! {
         .set_func(|seed, text| insert_string_in_string(seed, &text, "\n"))
         .set_cycle(1);
     static ref SINGLE_QUOTED_SCALAR: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|_, text| { text.replace("\"", "'") })
+        .set_func(|_, text| { text.replace('\"', "'") })
         .set_edges(vec![
             (1, &ESCAPED_QUOTES_SINGLE_QUOTED_SCALAR),
             (5, &MULTI_LINE_QUOTED_SCALAR),
@@ -24,7 +24,7 @@ lazy_static! {
             .set_func(|seed, text| insert_string_in_string(seed, &text, "''"))
             .set_cycle(1);
     static ref UNQUOTED_SCALAR: AutomatonNode<String> = AutomatonNode::<String>::new()
-        .set_func(|_, text| { text.replace("\"", "") })
+        .set_func(|_, text| { text.replace('\"', "") })
         .set_edges(vec![
             (1, &INVALID_UNQUOTED_SCALAR),
             (5, &VALID_UNQUOTED_SCALAR),

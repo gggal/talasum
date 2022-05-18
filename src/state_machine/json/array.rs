@@ -63,7 +63,7 @@ fn insert_element(seed: u64, text: String, automaton: &Automaton<String>) -> Str
     if text.eq("[]") {
         format!("[{}]", to_add)
     } else {
-        text.replacen("[", &format!("[ {},", to_add), 1)
+        text.replacen('[', &format!("[ {},", to_add), 1)
     }
 }
 

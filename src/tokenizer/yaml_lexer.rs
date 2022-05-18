@@ -1,8 +1,8 @@
 use super::Automaton;
 use super::LexerRule;
 
-use crate::state_machine::yaml::indentation::INDENTATION_AUTOMATON;
 use crate::state_machine::yaml::flow_scalar::FLOW_SCALAR_AUTOMATON;
+use crate::state_machine::yaml::indentation::INDENTATION_AUTOMATON;
 
 #[derive(Parser)]
 //#[derive(Tokenizer)] // add a macro function that generates an alias function for parse

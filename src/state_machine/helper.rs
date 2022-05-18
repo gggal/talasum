@@ -161,7 +161,7 @@ pub fn replace_random_occurrence(
 ) -> String {
     // TODO wouldn't work for non-utf8
     let replace_possibilities: Vec<(usize, &str)> = original.rmatch_indices(to_replace).collect();
-    if replace_possibilities.len() != 0 {
+    if !replace_possibilities.is_empty() {
         let (choice, _) =
             replace_possibilities[(seed % replace_possibilities.len() as u64) as usize];
         let to_replace_length = to_replace.len();
