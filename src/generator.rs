@@ -14,12 +14,12 @@ use crate::state_machine::Automaton;
 /// It relies on a PRG internally because the fuzzing process should be traceable
 /// and reproducible at all times. If one needs true randomness, one needs to
 /// generate truly random seeds to pass to one's Generator.
-pub struct Generator<T: 'static + Eq> {
+pub struct Generator<T: 'static + Eq + Clone + Sync> {
     automaton: &'static Automaton<T>,
     seeder: Box<dyn Randomizer>,
 }
 
-impl<T: Eq> Generator<T> {
+impl<T: Eq + Clone + Sync> Generator<T> {
     /// Creates a Generator instance based on the following input:
     /// - `automaton` - automaton static object, representing the protocol<->type pair
     /// - `seeder` - will be used for generating random mutations to the input
@@ -29,7 +29,7 @@ impl<T: Eq> Generator<T> {
     }
 }
 
-impl<T: Eq + core::fmt::Debug> Iterator for Generator<T> {
+impl<T: Eq + Clone + Sync> Iterator for Generator<T> {
     type Item = T;
 
     /// Computes a new fuzz value.

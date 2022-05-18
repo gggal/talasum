@@ -9,8 +9,8 @@ lazy_static! {
 /// The entrypoint to this module.
 /// Based on a given set or transitions, recalculates their weights
 /// and returns a function that accepts a seed and returns the next state
-pub fn choose(vec: Vec<WeightedTransition<String>>) -> Transition<String> {
-    TransitionChoice::<String>::new(vec, CONFIG.get_vertical_randomness_coef()).choose()
+pub fn choose<T: Clone + Sync>(vec: Vec<WeightedTransition<T>>) -> Transition<T> {
+    TransitionChoice::<T>::new(vec, CONFIG.get_vertical_randomness_coef()).choose()
 }
 
 /// Represents the transition function.

@@ -33,19 +33,19 @@ type Generate<T> = fn(u64) -> T;
 /// but only loaded in memory if used. Thus, due to lazy_static restrictions, forming
 /// cycles is handled differently than the normal way of defining transitions, see
 /// `set_edge`/`set_edges` and `set_cycle`.
-pub struct AutomatonNode<T: 'static> {
+pub struct AutomatonNode<T: 'static + Clone + Sync> {
     transition: Transition<T>,
     transformation: Transformation<T>,
     cycle: usize,
 }
 
-impl AutomatonNode<String> {
+impl<T: Clone + Sync> AutomatonNode<T> {
     /// Constructs a trivial automaton node: one without a
     /// transformation function and adjacent nodes.
     fn new() -> Self {
         Self {
             transition: Box::new(|_| None),
-            transformation: helper::IDENTITY,
+            transformation: |_, input| input,
             cycle: 0,
         }
     }
@@ -89,7 +89,7 @@ impl AutomatonNode<String> {
     ///
     /// If a transformation function is not added, execution will proceed with the
     /// next state without changing the fuzzing value.
-    fn set_func(mut self, func: Transformation<String>) -> Self {
+    fn set_func(mut self, func: Transformation<T>) -> Self {
         self.transformation = func;
         self
     }
@@ -115,12 +115,12 @@ impl AutomatonNode<String> {
 /// the state decision function that takes a seed (int sequence) and based on it, it generates
 /// a pseudo-random number - quota. The quota falls into one category out of multiple pre-defined
 /// ones, each associated with an edge candidate.  
-pub struct Automaton<T: 'static + Eq> {
+pub struct Automaton<T: 'static + Eq + Clone + Sync> {
     initial_node: &'static AutomatonNode<T>,
     generator: Generate<T>,
 }
 
-impl<T: Eq + core::fmt::Debug> Automaton<T> {
+impl<T: Eq + Clone + Sync> Automaton<T> {
     /// Returns the start state for the automaton
     fn init_state(&self) -> &AutomatonNode<T> {
         self.initial_node
@@ -167,7 +167,7 @@ impl<T: Eq + core::fmt::Debug> Automaton<T> {
 }
 #[cfg(test)]
 mod tests {
-    use super::{helper::FINAL, helper::IDENTITY, Automaton, AutomatonNode};
+    use super::{helper::FINAL, Automaton, AutomatonNode};
 
     lazy_static! {
         static ref TEST_NODE1: AutomatonNode<String> =
@@ -206,7 +206,7 @@ mod tests {
     #[test]
     fn new_nodes_are_nulled_out() {
         let empty = AutomatonNode::new();
-        assert_eq!(empty.transformation, IDENTITY);
+        assert_eq!((empty.transformation)(123, "test"), "test");
         assert_eq!(empty.cycle, 0);
     }
 
@@ -247,7 +247,7 @@ mod tests {
 
     #[test]
     fn setting_multiple_edges_when_list_is_empty_does_nothing() {
-        assert!((AutomatonNode::new().set_edges(vec![]).transition)(123).is_none());
+        assert!((AutomatonNode::<String>::new().set_edges(vec![]).transition)(123).is_none());
     }
 
     #[test]
@@ -277,7 +277,7 @@ mod tests {
 
     #[test]
     fn setting_cycle_correctly() {
-        assert_eq!(AutomatonNode::new().set_cycle(123).cycle, 123);
+        assert_eq!(AutomatonNode::<String>::new().set_cycle(123).cycle, 123);
     }
 
     #[test]

@@ -2,9 +2,6 @@ use std::char;
 
 use super::{AutomatonNode, PRandomizer, Randomizer};
 
-/// The Identity function
-pub const IDENTITY: fn(u64, String) -> String = |_, input| input;
-
 lazy_static! {
     /// A trivial final state without a transformation function
     pub static ref FINAL: AutomatonNode<String> = AutomatonNode::<String>::new();
